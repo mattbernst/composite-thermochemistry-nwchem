@@ -1,0 +1,27 @@
+#g3mp2.py needs to be in the same directory as this input
+#basis_data/g3mp2large needs to be copied to NWChem's basis library directory
+print none
+
+title "ammonia"
+
+geometry units angstroms print xyz 
+  symmetry C1
+  N       -0.01598        0.04072        0.02285
+  H        0.99885       -0.01406       -0.00792
+  H       -0.33501       -0.01406       -0.94103
+  H       -0.33493       -0.81030        0.47878
+end
+
+python noprint
+import os
+import sys
+sys.path.append(os.getcwd())
+
+import g3mp2
+
+g3mp2.G3MP2()
+
+end
+
+task python
+

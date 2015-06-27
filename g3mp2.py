@@ -915,8 +915,8 @@ def HF_zpe():
         Ezpe    = vibsum / (2.0 * cm2Ha)
 
         # get total thermal energy, enthalpy
-        eth = nwchem.rtdb_get("vib:Ethermal")
-        hth = nwchem.rtdb_get("vib:Hthermal")
+        eth = nwchem.rtdb_get("vib:ethermal")
+        hth = nwchem.rtdb_get("vib:hthermal")
         Ethermal= eth
         Hthermal= hth
 
