@@ -810,7 +810,7 @@ def calc_deltaHf():
 
     dhf0 = (E0 - sum_atoms_E0) * kCalPerHartree + sum_atoms_dhf0
 
-    dhf298 = (E298 - sum_atoms_E298) * kCalPerHartree + sum_atoms_dhf298
+    dhf298 = (H298 - sum_atoms_E298) * kCalPerHartree + sum_atoms_dhf298
 
     debug('dhf0,dhf298 = %.2f,%.2f' % (dhf0, dhf298))
 

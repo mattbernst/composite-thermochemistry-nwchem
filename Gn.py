@@ -562,7 +562,7 @@ class G4_mp2(object):
             return False
 
         self.dhf0 = (self.E0 - sum_atoms_E0) * kCalPerHartree + sum_atoms_dhf0
-        self.dhf298 = (self.E298 - sum_atoms_E298) * kCalPerHartree + sum_atoms_dhf298
+        self.dhf298 = (self.H298 - sum_atoms_E298) * kCalPerHartree + sum_atoms_dhf298
         self.debug('dhf0,dhf298 = %.2f,%.2f' % (self.dhf0, self.dhf298))
 
         return False
