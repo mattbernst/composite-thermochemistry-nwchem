@@ -22,30 +22,37 @@ kT_298_perMol   = (Boltzmann * T298 * Avogadro) / JoulePerKcal / kCalPerHartree
 
 class G4_mp2(object):
     """
-     G4(MP2) composite method
-     1 optimize  B3LYP/6-31G(2df,p)
+     G4(MP2) composite method for Python under NWChem 6.5
+     Implementation by Matt B. Ernst and Daniel R. Haney
+     7/18/2015
 
-     2 Ezpe =    zpe at B3LYP/6-31G(2df,p)
-     3 E(MP2) =  MP2(fc)/6-31G(d)
+     Gaussian-4 theory using reduced order perturbation theory
+     Larry A. Curtiss,Paul C. Redfern,Krishnan Raghavachari
+     THE JOURNAL OF CHEMICAL PHYSICS 127, 124105 2007
 
-     4 E(ccsd(t)) =  CCSD(fc,T)/6-31G(d)
-     5 E(HF/G3LXP) = HF/G3LargeXP
-     6 E(G3LargeXP)= MP2(fc)/G3LargeXP
 
-     7 E(HF1) =  HF/aug-cc-pV(T+d)Z
-     8 E(HF2) =  HF/aug-cc-pV(Q+d)Z
-       E(HFlimit)=   extrapolated HF limit
+     1 optimize     @ B3LYP/6-31G(2df,p)
+     2 Ezpe         = zpe at B3LYP/6-31G(2df,p)
+     3 E(MP2)       = MP2(fc)/6-31G(d)
 
-       delta(HF) =   E(HFlimit) - E(HF/G3LargeXP)
-       E(SO) =   spin orbit energy
-       Ehlc =    High Level Correction
+     4 E(ccsd(t))   = CCSD(fc,T)/6-31G(d)
+     5 E(HF/G3LXP)  = HF/G3LargeXP
+     6 E(G3LargeXP) = MP2(fc)/G3LargeXP
 
-       E(G3(MP2)) =  E(CCSD(T)) +
-             E(G3LargeXP) - E(MP2) +
-             Delta(HFlimit) +
-             E(SO) +
-             E(HLC) +
-             Ezpe * scale_factor
+     7 E(HF1)       = HF/g4mp2-aug-cc-pVTZ
+     8 E(HF2)       = HF/g4mp2-aug-cc-pVQZ
+       E(HFlimit)   = extrapolated HF limit, =CBS
+
+       delta(HF)    = E(HFlimit) - E(HF/G3LargeXP)
+       E(SO)        = spin orbit energy
+       Ehlc         = High Level Correction
+
+       E(G4(MP2)) = E(CCSD(T)) +
+                    E(G3LargeXP) - E(MP2) +
+                    Delta(HFlimit) +
+                    E(SO) +
+                    E(HLC) +
+                    Ezpe * scale_factor
     """
 
     def __init__(self, charge=0, multiplicity="singlet", tracing=False,
@@ -399,88 +406,6 @@ class G4_mp2(object):
                      for a in self.atoms])
         return total
 
-    def ESO(self, atomic_number, charge):
-        """EspinOrbit tabulates the spin orbit energies
-        of atomic species in the first three rows as listed in
-
-        Gaussian-4 theory
-        Larry A. Curtiss,Paul C. Redfern,Krishnan Raghavachari
-        JOURNAL OF CHEMICAL PHYSICS 126, 084108 (2007)
-        DOI: 10.1063/1.2436888
-
-        This table contains lists of spin orbit energies for
-        [neutral,positive,negative] species.
-        Where Curtiss lists no values, 0.0 is returned.
-
-        Values may not agree with current NIST listings.
-
-        Although table values are in milli-Hartrees,
-        function ESO returns values in Hartrees
-
-        :param atomic_number: atomic number of an atomic species
-        :type atomic_number : int
-        :param charge: species charge
-        :type charge : int
-        :return: spin orbit energy
-        :rtype : float
-        """
-
-        #   [neutral, Z+,     Z- ]
-        ESpinOrbit = [
-            [ 0.0,   0.0,    0.0 ],     # 00 zero index place holder
-            [ 0.0,   0.0,    0.0 ],     # 01 H     Hydrogen
-            [ 0.0,   0.0,    0.0 ],     # 02 He    Helium
-            [ 0.0,   0.0,    0.0 ],     # 03 Li    Lithium
-            [ 0.0,   0.0,    0.0 ],     # 04 Be    Beryllium
-            [-0.05,  0.0,   -0.03],     # 05 B     Boron
-            [-0.14, -0.2,    0.0 ],     # 06 C     Carbon
-            [ 0.0,  -0.43,   0.0 ],     # 07 N     Nitrogen
-            [-0.36,  0.0,   -0.26],     # 08 O     Oxygen
-            [-0.61, -0.67,   0.0 ],     # 09 F     Fluorine
-            [ 0.0,  -1.19,   0.0 ],     # 10 Ne    Neon
-            [ 0.0,   0.0,    0.0 ],     # 11 Na    Sodium
-            [ 0.0,   0.0,    0.0 ],     # 12 Mg    Magnesium
-            [-0.34,  0.0,   -0.28],     # 13 Al    Aluminum
-            [-0.68, -0.93,   0.0 ],     # 14 Si    Silicon
-            [ 0.0,  -1.43,  -0.45],     # 15 P     Phosphorus
-            [-0.89,  0.0,   -0.88],     # 16 S     Sulfur
-            [-1.34, -1.68,   0.0 ],     # 17 Cl    Chlorine
-            [ 0.0,  -2.18,   0.0 ],     # 18 Ar    Argon
-            [ 0.0,   0.0,    0.0 ],     # 19 K     Potassium
-            [ 0.0,   0.0,    0.0 ],     # 20 Ca    Calcium
-            [ 0.0,   0.0,    0.0 ],     # 21 Sc    Scandium
-            [ 0.0,   0.0,    0.0 ],     # 22 Ti    Titanium
-            [ 0.0,   0.0,    0.0 ],     # 23 V     Vanadium
-            [ 0.0,   0.0,    0.0 ],     # 24 Cr    Chromium
-            [ 0.0,   0.0,    0.0 ],     # 25 Mn    Manganese
-            [ 0.0,   0.0,    0.0 ],     # 26 Fe    Iron
-            [ 0.0,   0.0,    0.0 ],     # 27 Co    Cobalt
-            [ 0.0,   0.0,    0.0 ],     # 28 Ni    Nickel
-            [ 0.0,   0.0,    0.0 ],     # 29 Cu    Copper
-            [ 0.0,   0.0,    0.0 ],     # 30 Zn    Zinc
-            [-2.51,  0.0,    0.0 ],     # 31 Ga    Gallium
-            [-4.41, -5.37,   0.0 ],     # 32 Ge    Germanium
-            [ 0.0,  -8.04,   0.0 ],     # 33 As    Arsenic
-            [-4.3,   0.0,    0.0 ],     # 34 Se    Selenium
-            [-5.6,  -6.71,   0.0 ],     # 35 Br    Bromine
-            [ 0.0,  -8.16,   0.0 ]      # 36 Kr    Krypton
-        ]
-
-        if charge > 0:
-            ion = 1
-        elif charge < 0:
-            ion = 2
-        else:
-            ion = 0
-
-        milliHa_to_Ha = 0.001
-        try:
-            value = ESpinOrbit[atomic_number][ion] * milliHa_to_Ha
-        except IndexError:
-            value = 0.0
-
-        return value
-
     def spin_orbit_energy(self):
         """Get spin orbit energy correction according to nature of system and charge.
 
@@ -491,7 +416,9 @@ class G4_mp2(object):
         if self.is_molecule():   # no spin orbit corrections for molecules
             correction = 0.0
         else:       # It's an atom
-            correction = self.ESO(self.atomic_number(self.atoms[0]), self.charge)
+            atom = self.atoms[0]
+            correction = self.E_spin_orbit(self.atomic_number(atom),
+                                           self.charge)
 
         return correction
 
@@ -528,8 +455,11 @@ class G4_mp2(object):
             [0.00,    0.00    ],  # 18  Argon
             [21.27,   21.49   ],  # 19  Potassium
             [42.50,   42.29   ],  # 20  Calcium
-            [0.0,0.0],[0.0,0.0],[0.0,0.0],[0.0,0.0],[0.0,0.0], # elements 21-30 Sc-Zn
-            [0.0,0.0],[0.0,0.0],[0.0,0.0],[0.0,0.0],[0.0,0.0],
+            [0.0,0.0],[0.0,0.0],  # transition elements 21-30 Sc-Zn
+            [0.0,0.0],[0.0,0.0],
+            [0.0,0.0],[0.0,0.0],
+            [0.0,0.0],[0.0,0.0],
+            [0.0,0.0],[0.0,0.0],
             [65.00,   65.00   ],  # 31  Gallium
             [88.91,   88.91   ],  # 32  Germanium
             [73.90,   72.42   ],  # 33  Arsenic
@@ -549,7 +479,8 @@ class G4_mp2(object):
         return result
 
     def E0_atom(self, elementNum):
-        """
+        """List of precalculated atomic G4(MP2) energies at 0K
+        Returns E(0K), E(298.15K) tuple.
 
         :param elementNum: atomic number
         :type elementNum : int
@@ -557,26 +488,39 @@ class G4_mp2(object):
         :rtype : tuple
         """
 
-        e0_g4mp2 = [ 0.0,  # 00 zero index place holder
-          -0.502106 ,     # 01 H     Hydrogen
-          -2.892460 ,     # 02 He    Helium
-          -7.434838 ,     # 03 Li    Lithium
-         -14.618710 ,     # 04 Be    Beryllium
-         -24.610117 ,     # 05 B     Boron
-         -37.794351 ,     # 06 C     Carbon
-         -54.533072 ,     # 07 N     Nitrogen
-         -75.002937 ,     # 08 O     Oxygen
-         -99.660376 ,     # 09 F     Fluorine
-        -128.855746 ,     # 10 Ne    Neon
-        -161.861062 ,     # 11 Na    Sodium
-        -199.647030 ,     # 12 Mg    Magnesium
-        -241.944847 ,     # 13 Al    Aluminum
-        -288.947968 ,     # 14 Si    Silicon
-        -340.837225 ,     # 15 P     Phosphorus
-        -397.676807 ,     # 16 S     Sulfur
-        -459.704008 ,     # 17 Cl    Chlorine
-        -527.083616 ,     # 18 Ar    Argon
-        ]
+        e0_g4mp2 = [ 0.0 ,  # 00 zero index place holder
+                     -0.502094 ,  # 01    H   Hydrogen
+                     -2.892437 ,  # 02    He  Helium
+                     -7.434837 ,  # 03    Li  Lithium
+                     -14.618701 ,  # 04    Be  Beryllium
+                     -24.610037 ,  # 05    B   Boron
+                     -37.794204 ,  # 06    C   Carbon
+                     -54.532825 ,  # 07    N   Nitrogen
+                     -75.002483 ,  # 08    O   Oxygen
+                     -99.659686 ,  # 09    F   Fluorine
+                     -128.854769 ,  # 10    Ne  Neon
+                     -161.860999 ,  # 11    Na  Sodium
+                     -199.646948 ,  # 12    Mg  Magnesium
+                     -241.944728 ,  # 13    Al  Aluminum
+                     -288.947800 ,  # 14    Si  Silicon
+                     -340.837016 ,  # 15    P   Phosphorus
+                     -397.676523 ,  # 16    S   Sulfur
+                     -459.703691 ,  # 17    Cl  Chlorine
+                     -527.083295 ,  # 18    Ar  Argon
+                     -599.166975 ,  # 19    K   Potassium
+                     -676.784184 ,  # 20    Ca  Calcium
+                     0.0,0.0,0.0,   # 21-23 transition metals
+                     0.0,0.0,0.0,   # 24-26 transition metals
+                     0.0,0.0,0.0,   # 27-29 transition metals
+                     0.0,           # 30    transition metals
+                     -1923.601298 ,  # 31    Ga  Gallium
+                     -2075.700329 ,  # 32    Ge  Germanium
+                     -2234.578295 ,  # 33    As  Arsenic
+                     -2400.243694 ,  # 34    Se  Selenium
+                     -2572.850476 ,  # 35    Br  Bromine
+                     -2752.487773 ,  # 36    Kr  Krypton
+                     ]
+
 
         # Ideal gas kinetic energy contribution
         eth = (5.0/2) * kT_298_perMol
@@ -632,7 +576,7 @@ class G4_mp2(object):
 
         return False
 
-    def build_SCF_cmd(self, integral_memory_cache=0, integral_disk_cache=0):
+    def build_SCF_cmd(self, integral_memory_cache=1000000000, integral_disk_cache=0):
         """Prepare SCF block with multiplicity-appropriate choice of
         HF form.
 
@@ -652,10 +596,87 @@ class G4_mp2(object):
                            self.multiplicity, self.hftype)
         return block
 
-    def E_spin_orbit(self):
-    #   E_(SO) =   spin orbit energy
+    def E_spin_orbit(self, atomic_number, charge):
+        """EspinOrbit tabulates the spin orbit energies
+        of atomic species in the first three rows as listed in
 
-        pass
+        Gaussian-4 theory
+        Larry A. Curtiss,Paul C. Redfern,Krishnan Raghavachari
+        JOURNAL OF CHEMICAL PHYSICS 126, 084108 (2007)
+        DOI: 10.1063/1.2436888
+
+        This table contains lists of spin orbit energies for
+        [neutral,positive,negative] species.
+        When Curtiss lists no values, 0.0 is returned.
+
+        Values may not agree with current NIST listings.
+
+        Although table values are in milli-Hartrees,
+        function E_spin_orbit returns values in Hartrees.
+
+        :param atomic_number: atomic number of atomic species
+        :type atomic_number : int
+        :param charge: charge on atomic species
+        :type charge : int
+        :return: energy in Hartrees
+        :rtype : float
+        """
+
+        #   [neutral, Z+,     Z- ]
+        ESpinOrbit = [
+            [ 0.0,   0.0,    0.0 ],     # 00 zero index place holder
+            [ 0.0,   0.0,    0.0 ],     # 01 H     Hydrogen
+            [ 0.0,   0.0,    0.0 ],     # 02 He    Helium
+            [ 0.0,   0.0,    0.0 ],     # 03 Li    Lithium
+            [ 0.0,   0.0,    0.0 ],     # 04 Be    Beryllium
+            [-0.05,  0.0,   -0.03],     # 05 B     Boron
+            [-0.14, -0.2,    0.0 ],     # 06 C     Carbon
+            [ 0.0,  -0.43,   0.0 ],     # 07 N     Nitrogen
+            [-0.36,  0.0,   -0.26],     # 08 O     Oxygen
+            [-0.61, -0.67,   0.0 ],     # 09 F     Fluorine
+            [ 0.0,  -1.19,   0.0 ],     # 10 Ne    Neon
+            [ 0.0,   0.0,    0.0 ],     # 11 Na    Sodium
+            [ 0.0,   0.0,    0.0 ],     # 12 Mg    Magnesium
+            [-0.34,  0.0,   -0.28],     # 13 Al    Aluminum
+            [-0.68, -0.93,   0.0 ],     # 14 Si    Silicon
+            [ 0.0,  -1.43,  -0.45],     # 15 P     Phosphorus
+            [-0.89,  0.0,   -0.88],     # 16 S     Sulfur
+            [-1.34, -1.68,   0.0 ],     # 17 Cl    Chlorine
+            [ 0.0,  -2.18,   0.0 ],     # 18 Ar    Argon
+            [ 0.0,   0.0,    0.0 ],     # 19 K     Potassium
+            [ 0.0,   0.0,    0.0 ],     # 20 Ca    Calcium
+            [ 0.0,   0.0,    0.0 ],     # 21 Sc    Scandium
+            [ 0.0,   0.0,    0.0 ],     # 22 Ti    Titanium
+            [ 0.0,   0.0,    0.0 ],     # 23 V     Vanadium
+            [ 0.0,   0.0,    0.0 ],     # 24 Cr    Chromium
+            [ 0.0,   0.0,    0.0 ],     # 25 Mn    Manganese
+            [ 0.0,   0.0,    0.0 ],     # 26 Fe    Iron
+            [ 0.0,   0.0,    0.0 ],     # 27 Co    Cobalt
+            [ 0.0,   0.0,    0.0 ],     # 28 Ni    Nickel
+            [ 0.0,   0.0,    0.0 ],     # 29 Cu    Copper
+            [ 0.0,   0.0,    0.0 ],     # 30 Zn    Zinc
+            [-2.51,  0.0,    0.0 ],     # 31 Ga    Gallium
+            [-4.41, -5.37,   0.0 ],     # 32 Ge    Germanium
+            [ 0.0,  -8.04,   0.0 ],     # 33 As    Arsenic
+            [-4.3,   0.0,    0.0 ],     # 34 Se    Selenium
+            [-5.6,  -6.71,   0.0 ],     # 35 Br    Bromine
+            [ 0.0,  -8.16,   0.0 ]      # 36 Kr    Krypton
+        ]
+
+        if not atomic_number in range(len(ESpinOrbit)):
+            return 0.0
+
+        if charge > 0:
+            ion = 1
+        elif charge < 0:
+            ion = 2
+        else:
+            ion = 0
+
+        milliHa_to_Ha = 0.001
+        espin = ESpinOrbit[atomic_number][ion] * milliHa_to_Ha
+        return espin
+
 
     def reset_symmetry(self):
         """Reload geometry and force symmetry down if TCE must be used.
@@ -755,10 +776,8 @@ class G4_mp2(object):
 
         if self.is_atom():
             self.Ezpe = 0.0
-            self.Ethermal = 1.5 * Rgas * temperature
+            self.Ethermal = 1.5 * Rgas * temperature # 3/2 * RT
             self.Hthermal = self.Ethermal + (Rgas * temperature)
-            #self.Ethermal = 0.001416      # 3/2 * RT
-            #self.Hthermal = 0.002360      # Ethermal + kT
             return False
 
         # run hessian on equilibrium geometry
@@ -773,12 +792,6 @@ class G4_mp2(object):
 
         # Handroll the ZPE because NWChem's zpe accumulates
         # truncation error from 3 sigfig physical constants.
-
-        #self.say ('DEBUG: %d vibrations: ' % len(vibs))
-        #for v in vibs:
-        #    self.say(' %.1f' % v)
-        #self.say('\n')
-
         vibsum = 0.0
         for freq in vibs:
             if (freq > 0.1):
@@ -786,11 +799,6 @@ class G4_mp2(object):
 
         cm2Ha = 219474.6    # cm-1 to Hartree conversion
         self.Ezpe    = vibsum / (2.0 * cm2Ha)
-
-        # get total thermal energy, enthalpy
-        eth = nwchem.rtdb_get("vib:ethermal")
-        hth = nwchem.rtdb_get("vib:hthermal")
-        #self.say("\nDEBUG: NWChem E,H thermal= %.6f, %.6f\n" % (eth,hth))
 
         # shamelessly swipe code from NWCHEM/src/vib_wrtFreq.F
         eth = 0.0
@@ -808,11 +816,10 @@ class G4_mp2(object):
                 xdum = xdum / (1.0 - xdum)
                 eth = eth + thetav * (0.5 + xdum)
 
-        # linear boolean is available only after task_freq('scf') runs
-        # NWChem only writes the flag if molecule is linear
-
         eth = eth * Rgas
 
+        # linear boolean is available only after task_freq('scf') runs
+        # NWChem only writes the flag if molecule is linear
         try:
             is_linear = nwchem.rtdb_get("vib:linear")
         except:
@@ -829,8 +836,8 @@ class G4_mp2(object):
         hth = eth + Rgas * temperature
         self.debug("Handrolled E,H thermal= %.6f, %.6f\n" % (eth,hth))
 
-        self.Ethermal= eth
-        self.Hthermal= hth
+        self.Ethermal = eth
+        self.Hthermal = hth
 
         return False
 
@@ -928,7 +935,7 @@ class G4_mp2(object):
             pass
 
         self.Ehfg3lxp = en
-        #self.report("debug: HF/G3LargeXP SCF:energy = %f Ha" % (en))
+        self.debug("HF/G3LargeXP SCF:energy = %f Ha" % (en))
         return False
 
 
@@ -956,7 +963,7 @@ class G4_mp2(object):
             else:
                 en = nwchem.task_energy("mp2")
 
-            #self.say('DEBUG: g3mp2large: en=%.6f\n' % en)
+            self.debug('MP(2,fc)/g3mp2large: en=%.6f\n' % en)
 
         except nwchem.NWChemError, message:
             self.report("NWChem error: %s\n" % message)
@@ -991,8 +998,7 @@ class G4_mp2(object):
         return en
 
     def E_hf1(self):
-        """Use Truhlar's minimally augmented maug-cc-pV(D+d)Z to get first
-        HF energy.
+        """Use g4mp2-aug-cc-pvtz basis set to get first HF energy.
 
         :return: failure code (True for failure, False for success)
         :rtype : bool
@@ -1000,18 +1006,18 @@ class G4_mp2(object):
 
         self.say("HF1.")
 
-        #basisset = 'aug-cc-pVTZ'
-        basisset = 'maug-cc-pV(T+d)Z'
+        basisset = "g4mp2-aug-cc-pvtz"
+
         en = self.E_hf_augccpvnz(basisset)
         if en == 0.0:
             return True
 
         self.Ehf1 = en
-        #self.report("\ndebug: HF/%s: energy = %f Ha" % (basisset,en))
+        self.debug("HF/%s: energy = %f Ha" % (basisset,en))
         return False
 
     def E_hf2(self):
-        """Use Truhlar's minimally augmented maug-cc-pV(T+d)Z to get second
+        """Use g4mp2-aug-cc-pvqz to get second
         HF energy.
 
         :return: failure code (True for failure, False for success)
@@ -1019,15 +1025,13 @@ class G4_mp2(object):
         """
 
         self.say("HF2.")
-
-        #basisset = 'aug-cc-pVQZ'
-        basisset = 'maug-cc-pV(Q+d)Z'
+        basisset = 'g4mp2-aug-cc-pvqz'
         en = self.E_hf_augccpvnz(basisset)
         if en == 0.0:
             return True
 
         self.Ehf2 = en
-        #self.report("\ndebug: HF/%s: energy = %f Ha" % (basisset,en))
+        self.debug("HF/%s: energy = %f Ha" % (basisset,en))
         return False
 
     def E_cbs(self):
@@ -1039,8 +1043,7 @@ class G4_mp2(object):
 
         self.say('CBS.')
 
-        use_Petersen = False    # use Truhlar CBS extrapolation
-        #use_Petersen = True
+        use_Petersen = True    # use Petersen CBS extrapolation
 
         #TODO: why abs() here?
         if abs(self.Ehf1) > abs(self.Ehf2):
@@ -1097,13 +1100,13 @@ class G4_mp2(object):
         # subject to the constraint that nAlpha >= nBeta
 
         self.nBeta   = self.nClosed - self.nFrozen
-        nAlpha  = self.nElec - self.nFrozen - self.nClosed
+        self.nAlpha  = self.nElec - self.nFrozen - self.nClosed
 
         self.debug('\nclosed=%d open=%d frozen=%d nAlpha=%d nBeta=%d\n' % \
                    (self.nClosed, self.nOpen, self.nFrozen, self.nAlpha, self.nBeta))
 
         if self.nAlpha < self.nBeta:
-            self.nAlpha,self.nBeta = self.nBeta,self.nAlpha
+            self.nAlpha, self.nBeta = self.nBeta, self.nAlpha
             #self.say('** a<->b swap: nAlpha=%d nBeta=%d\n' % (self.nAlpha,self.nBeta))
 
         # test for single (valence) electron pair species
@@ -1112,12 +1115,12 @@ class G4_mp2(object):
             hlc = E
 
         elif self.is_atom():
-            hlc = -C * (self.nBeta) - D * (self.nAlpha-self.nBeta)
+            hlc = -C * (self.nBeta) - D * (self.nAlpha - self.nBeta)
 
         elif self.multiplicity != "singlet":
-            hlc = -Ap * (self.nBeta) - B * (self.nAlpha-self.nBeta)
+            hlc = -Ap * (self.nBeta) - B * (self.nAlpha - self.nBeta)
 
-        else:                   # singlet, closed shell
+        else:                   # USUAL CASE: singlet, closed shell
             hlc = -A * (self.nBeta)
 
         self.Ehlc = hlc
@@ -1148,7 +1151,7 @@ class G4_mp2(object):
 
         self.E298 =  self.E0 + (self.Ethermal - self.Ezpe)
 
-        self.H298 =  self.E298 + (self.Hthermal - self.Ezpe)
+        self.H298 =  self.E0 + (self.Hthermal - self.Ezpe)
 
         return False
 
@@ -1170,7 +1173,7 @@ class G4_mp2(object):
             self.E_hf2,
             self.E_cbs,
             self.E_hlc,
-            self.E_spin_orbit,
+            self.spin_orbit_energy,
             self.E_g4mp2,
             self.calc_deltaHf
         ]

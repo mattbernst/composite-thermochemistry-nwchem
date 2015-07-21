@@ -1131,7 +1131,7 @@ def G4MP2 (charge=0, mult='singlet'):
         E_hf2,
         E_cbs,
         E_hlc,
-        E_spin_orbit,
+        spin_orbit_energy,
         E_g4mp2,
         calc_deltaHf
     ]
