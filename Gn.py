@@ -1,30 +1,3 @@
-'''
-# G4(MP2) composite method
-# 1 optimize  B3LYP/6-31G(2df,p)
-#
-# 2 Ezpe =    zpe at B3LYP/6-31G(2df,p)
-# 3 E(MP2) =  MP2(fc)/6-31G(d)
-#
-# 4 E(ccsd(t)) =  CCSD(fc,T)/6-31G(d)
-# 5 E(HF/G3LXP) = HF/G3LargeXP
-# 6 E(G3LargeXP)= MP2(fc)/G3LargeXP
-#
-# 7 E(HF1) =  HF/aug-cc-pV(T+d)Z
-# 8 E(HF2) =  HF/aug-cc-pV(Q+d)Z
-#   E(HFlimit)=   extrapolated HF limit
-#
-#   delta(HF) =   E(HFlimit) - E(HF/G3LargeXP)
-#   E(SO) =   spin orbit energy
-#   Ehlc =    High Level Correction
-#
-#   E(G3(MP2)) =  E(CCSD(T)) +
-#         E(G3LargeXP) - E(MP2) +
-#         Delta(HFlimit) +
-#         E(SO) +
-#         E(HLC) +
-#         Ezpe * scale_factor
-'''
-
 import glob
 import hashlib
 import sys
@@ -48,6 +21,33 @@ T298            = 298.15
 kT_298_perMol   = (Boltzmann * T298 * Avogadro) / JoulePerKcal / kCalPerHartree
 
 class G4_mp2(object):
+    """
+     G4(MP2) composite method
+     1 optimize  B3LYP/6-31G(2df,p)
+
+     2 Ezpe =    zpe at B3LYP/6-31G(2df,p)
+     3 E(MP2) =  MP2(fc)/6-31G(d)
+
+     4 E(ccsd(t)) =  CCSD(fc,T)/6-31G(d)
+     5 E(HF/G3LXP) = HF/G3LargeXP
+     6 E(G3LargeXP)= MP2(fc)/G3LargeXP
+
+     7 E(HF1) =  HF/aug-cc-pV(T+d)Z
+     8 E(HF2) =  HF/aug-cc-pV(Q+d)Z
+       E(HFlimit)=   extrapolated HF limit
+
+       delta(HF) =   E(HFlimit) - E(HF/G3LargeXP)
+       E(SO) =   spin orbit energy
+       Ehlc =    High Level Correction
+
+       E(G3(MP2)) =  E(CCSD(T)) +
+             E(G3LargeXP) - E(MP2) +
+             Delta(HFlimit) +
+             E(SO) +
+             E(HLC) +
+             Ezpe * scale_factor
+    """
+
     def __init__(self, charge=0, multiplicity="singlet", tracing=False,
                  debug=False):
         multiplets  = ["(null)", "singlet", "doublet", "triplet", "quartet",

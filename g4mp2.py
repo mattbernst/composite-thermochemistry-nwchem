@@ -1,29 +1,37 @@
 '''
-# G4(MP2) composite method
-# 1 optimize  B3LYP/6-31G(2df,p)
-#
-# 2 Ezpe =    zpe at B3LYP/6-31G(2df,p)
-# 3 E(MP2) =  MP2(fc)/6-31G(d)
-#
-# 4 E(ccsd(t)) =  CCSD(fc,T)/6-31G(d)
-# 5 E(HF/G3LXP) = HF/G3LargeXP
-# 6 E(G3LargeXP)= MP2(fc)/G3LargeXP
-#
-# 7 E(HF1) =  HF/aug-cc-pV(T+d)Z
-# 8 E(HF2) =  HF/aug-cc-pV(Q+d)Z
-#   E(HFlimit)=   extrapolated HF limit
-#
-#   delta(HF) =   E(HFlimit) - E(HF/G3LargeXP)
-#   E(SO) =   spin orbit energy
-#   Ehlc =    High Level Correction
-#
-#   E(G3(MP2)) =  E(CCSD(T)) +
-#         E(G3LargeXP) - E(MP2) +
-#         Delta(HFlimit) +
-#         E(SO) +
-#         E(HLC) +
-#         Ezpe * scale_factor
+ G4(MP2) composite method for Python under NWChem 6.5
+ Implementation by Matt B. Ernst and Daniel R. Haney
+ 7/18/2015
+
+ Gaussian-4 theory using reduced order perturbation theory
+ Larry A. Curtiss,Paul C. Redfern,Krishnan Raghavachari
+ THE JOURNAL OF CHEMICAL PHYSICS 127, 124105 2007
+
+
+ 1 optimize     @ B3LYP/6-31G(2df,p)
+ 2 Ezpe         = zpe at B3LYP/6-31G(2df,p)
+ 3 E(MP2)       = MP2(fc)/6-31G(d)
+
+ 4 E(ccsd(t))   = CCSD(fc,T)/6-31G(d)
+ 5 E(HF/G3LXP)  = HF/G3LargeXP
+ 6 E(G3LargeXP) = MP2(fc)/G3LargeXP
+
+ 7 E(HF1)       = HF/g4mp2-aug-cc-pVTZ
+ 8 E(HF2)       = HF/g4mp2-aug-cc-pVQZ
+   E(HFlimit)   = extrapolated HF limit, =CBS
+
+   delta(HF)    = E(HFlimit) - E(HF/G3LargeXP)
+   E(SO)        = spin orbit energy
+   Ehlc         = High Level Correction
+
+   E(G4(MP2)) = E(CCSD(T)) +
+                E(G3LargeXP) - E(MP2) +
+                Delta(HFlimit) +
+                E(SO) +
+                E(HLC) +
+                Ezpe * scale_factor
 '''
+#______________________________________________________
 
 import sys
 import math
@@ -48,30 +56,15 @@ kT_298_perMol   = (Boltzmann * T298 * Avogadro) / JoulePerKcal / kCalPerHartree
 
 #______________________________________________________
 #
-#________________  PHYSICAL CONSTANTS _________________
-#______________________________________________________
-
-kCalPerHartree  = 6.2750947E+02
-Boltzmann       = 1.3806488E-23
-Avogadro        = 6.02214129E+23
-JoulePerKcal    = 4.184E+03
-T298            = 298.15
-
-kT_298_perMol   = (Boltzmann * T298 * Avogadro) / JoulePerKcal / kCalPerHartree
-
-
-#______________________________________________________
-#
 #_________________  GLOBAL VARIABLES  _________________
 #______________________________________________________
-
-#Tracing = True          # console stderr output
-Tracing = False        # console stderr output
 
 #debug_flag = True          # console stderr output
 debug_flag = False        # console stderr output
 
-
+def set_debug(onoff=0):
+    global debug_flag
+    debug_flag = (onoff != 0)
 
 ''''
 Zero Point Energy scale factor for B3LYP/6-31G(2df,p)
@@ -200,39 +193,51 @@ def set_atoms_list ():
     global AtomsList
     global NumAtoms
 
-    # rtdb_get() returns a string if only one atom
-    #       or a list of atoms (i.e., tags).
-    # Absent type handling,
+    # rtdb_get() returns EITHER
+    #       a string if only one atom, or
+    #       a list of atoms (i.e., tags).
+    #
+    # Without type handling,
     # len('CU') is the same as len(['C','U'])
     #
     tags = nwchem.rtdb_get("geometry:geometry:tags")
-    if type(tags).__name__ == 'str':
+    tag_type = type(tags).__name__
+
+    if tag_type == 'str':
         AtomsList.append(tags)
         debug('AtomsList: %s\n' % tags)
-    else:
+
+    elif tag_type == 'list':
         AtomsList.extend(tags)
         if debug_flag:
             atmstr=''
             for atm in tags:
                 atmstr += ' '+atm
             debug('AtomsList: %s\n' % atmstr)
-
+    else:
+        AtomsList = []
 
     NumAtoms = len(AtomsList)
     debug('NumAtoms=%d\n' % NumAtoms)
 
 def is_molecule ():
     ''' True if number of atoms > 1
-        Needs AtomsList populated from Ezpe
     '''
     return (NumAtoms > 1)
 
 def is_atom ():
     ''' True if number of atoms == 1
-        Needs AtomsList populated from Ezpe
     '''
     return (NumAtoms == 1)
 
+# detect special case for when CCSD(T)/6-31G* fails
+def is_H2 ():
+    if NumAtoms == 2 and \
+            atomic_number(AtomsList[0]) == 1 and \
+            atomic_number(AtomsList[1]) == 1 :
+        return True
+    else:
+        return False
 #______________________________________________________
 ## several console log utilities
 ##
@@ -324,9 +329,8 @@ def report_dHf ():
     ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     ]
 
-    if is_molecule():
-        for line in heatsOfFormation:
-            report(line)
+    for line in heatsOfFormation:
+        report(line)
 
 #______________________________________________________
 
@@ -337,8 +341,6 @@ def report_all ():
 #______________________________________________________
 
 def send_nwchem_cmd (s):
-    global Tracing
-
     nwchem.input_parse(s)
     debug("cmd: [%s]" % s)
 
@@ -351,51 +353,34 @@ def set_charge (chg=0):
 
 #______________________________________________________
 '''Look up atomic number from element name or symbol
-The atoms list may contain either.
+    since the atoms list may contain either.
 '''
 
-elementNames = [ 'zero',                        # placeholder
-    'HYDROGEN','HELIUM','LITHIUM','BERYLLIUM','BORON','CARBON',
-    'NITROGEN','OXYGEN','FLUORINE','NEON','SODIUM','MAGNESIUM',
-    'ALUMINIUM','SILICON','PHOSPHORUS','SULFUR','CHLORINE','ARGON',
-    'POTASSIUM','CALCIUM','SCANDIUM','TITANIUM','VANADIUM','CHROMIUM',
-    'MANGANESE','IRON','COBALT','NICKEL','COPPER','ZINC','GALLIUM',
-    'GERMANIUM','ARSENIC','SELENIUM','BROMINE','KRYPTON'
-    ]
+def atomic_number(element=''):
 
-atomicSymbols = [ 'zero',                       # placeholder
-    'H',                               'HE',
-    'LI','BE','B' ,'C' ,'N' ,'O' ,'F' ,'NE',
-    'NA','MG','AL','SI','P' ,'S' ,'CL','AR',
-    'K' ,'CA',
-         'SC','TI','V' ,'CR','MN','FE','CO','NI','CU','ZN',
-              'GA','GE','AS','SE','BR','KR'
-    ]
+    element_dict= {
+        'H':1,'HE':2,'LI':3,'BE':4,'B':5,'C':6,'N':7,'O':8,'F':9,'NE':10,
+        'NA':11,'MG':12,'AL':13,'SI':14,'P':15,'S':16,'CL':17,'AR':18,
+        'K':19,'CA':20,
+        'SC':21,'TI':22,'V':23,'CR':24,'MN':25,
+        'FE':26,'CO':27,'NI':28,'CU':29,'ZN':30,
+        'GA':31,'GE':32,'AS':33,'SE':34,'BR':35,'KR':36,
+        'HYDROGEN':1,'HELIUM':2,'LITHIUM':3,'BERYLLIUM':4,'BORON':5,
+        'CARBON':6,'NITROGEN':7,'OXYGEN':8,'FLUORINE':9,'NEON':10,
+        'SODIUM':11,'MAGNESIUM':12,'ALUMINIUM':13,'SILICON':14,
+        'PHOSPHORUS':15,'SULFUR':16,'CHLORINE':17,'ARGON':18,
+        'POTASSIUM':19,'CALCIUM':20,'SCANDIUM':21,'TITANIUM':22,
+        'VANADIUM':23,'CHROMIUM':24,'MANGANESE':25,'IRON':26,
+        'COBALT':27,'NICKEL':28,'COPPER':29,'ZINC':30,'GALLIUM':31,
+        'GERMANIUM':32,'ARSENIC':33,'SELENIUM':34,'BROMINE':35,'KRYPTON':36
+        }
 
+    try:
+        atmnum = element_dict[element.upper()]
+    except:
+        atmnum = 0
 
-def element_number(element=''):
-
-    if element.upper() in elementNames:
-        return elementNames.index(element.upper())
-    else:
-        return 0
-
-def symbol_number(symbol=''):
-
-    if symbol.upper() in atomicSymbols:
-        return atomicSymbols.index(symbol.upper())
-    else:
-        return 0
-
-def atomic_number (atom=''):
-
-    if len(atom) == 0:
-        return 0
-
-    if len(atom) <= 2:
-        return symbol_number(atom)
-    else:
-        return element_number(atom)
+    return atmnum
 
 #______________________________________________________
 
@@ -435,7 +420,7 @@ def atom_core_orbitals (atomicNumber):
         return 0
 
 
-####
+#______________________________________________________
 '''
  SUM the total number of frozen core orbitals in a molecule.
 
@@ -453,7 +438,7 @@ def sum_core_orbitals ():
 
 #_______________________________________________________
 
-def ESO (atomic_number=0, charge=0):
+def E_spin_orbit (atomic_number=0, charge=0):
     ''' EspinOrbit tabulates the spin orbit energies
     of atomic species in the first three rows as listed in
 
@@ -464,12 +449,12 @@ def ESO (atomic_number=0, charge=0):
 
     This table contains lists of spin orbit energies for
     [neutral,positive,negative] species.
-    Where Curtiss lists no values, 0.0 is returned.
+    When Curtiss lists no values, 0.0 is returned.
 
     Values may not agree with current NIST listings.
 
     Although table values are in milli-Hartrees,
-    function ESO returns values in Hartrees
+    function E_spin_orbit returns values in Hartrees
     '''
     #   [neutral, Z+,     Z- ]
     ESpinOrbit = [
@@ -535,7 +520,7 @@ def spin_orbit_energy ():
         return 0.0
     else:       # Its an atom, so AtomsList has only one member
         atom=AtomsList[0]
-        return ESO(atomic_number(atom),Charge)
+        return E_spin_orbit(atomic_number(atom),Charge)
 
 #______________________________________________________
 
@@ -568,8 +553,11 @@ def atomic_DHF (elementNum=0):
         [0.00,    0.00    ],  # 18  Argon
         [21.27,   21.49   ],  # 19  Potassium
         [42.50,   42.29   ],  # 20  Calcium
-        [0.0,0.0],[0.0,0.0],[0.0,0.0],[0.0,0.0],[0.0,0.0], # elements 21-30 Sc-Zn
-        [0.0,0.0],[0.0,0.0],[0.0,0.0],[0.0,0.0],[0.0,0.0],
+        [0.0,0.0],[0.0,0.0],  # transition elements 21-30 Sc-Zn
+        [0.0,0.0],[0.0,0.0],  # transition elements
+        [0.0,0.0],[0.0,0.0],  # transition elements
+        [0.0,0.0],[0.0,0.0],  # transition elements
+        [0.0,0.0],[0.0,0.0],  # transition elements
         [65.00,   65.00   ],  # 31  Gallium
         [88.91,   88.91   ],  # 32  Germanium
         [73.90,   72.42   ],  # 33  Arsenic
@@ -577,49 +565,67 @@ def atomic_DHF (elementNum=0):
         [26.74,   28.18   ],  # 35  Bromine
         [0.0,     0.0     ],  # 36  Krypton
     ]
+
     debug('atomic_DHF: elementNum=%d' % elementNum)
+
     if elementNum <len(atomDHF):
-        debug('atomic_DHF: E,H=%.2f,%.2f' %
+        debug('atomic_DHF: E0,E298=%.2f,%.2f' %
             (atomDHF[elementNum][0], atomDHF[elementNum][1]))
         return atomDHF[elementNum][0], atomDHF[elementNum][1]
     else:
-        debug('atomic_DHF: error: element %d not in table?' % elementNum)
+        report('atomic_DHF: error: element %d not in table?' % elementNum)
         return 0.0,0.0
 
 
 #_______________________________________________________
 def E0_atom (elementNum=0):
+    '''List of precalculated atomic G4(MP2) energies at 0K
+        returns E(0K), E(298.15K) tuple
+    '''
 
-    e0_g4mp2 = [ 0.0,  # 00 zero index place holder
-      -0.502106 ,     # 01 H     Hydrogen
-      -2.892460 ,     # 02 He    Helium
-      -7.434838 ,     # 03 Li    Lithium
-     -14.618710 ,     # 04 Be    Beryllium
-     -24.610117 ,     # 05 B     Boron
-     -37.794351 ,     # 06 C     Carbon
-     -54.533072 ,     # 07 N     Nitrogen
-     -75.002937 ,     # 08 O     Oxygen
-     -99.660376 ,     # 09 F     Fluorine
-    -128.855746 ,     # 10 Ne    Neon
-    -161.861062 ,     # 11 Na    Sodium
-    -199.647030 ,     # 12 Mg    Magnesium
-    -241.944847 ,     # 13 Al    Aluminum
-    -288.947968 ,     # 14 Si    Silicon
-    -340.837225 ,     # 15 P     Phosphorus
-    -397.676807 ,     # 16 S     Sulfur
-    -459.704008 ,     # 17 Cl    Chlorine
-    -527.083616 ,     # 18 Ar    Argon
+    e0_g4mp2 = [ 0.0 ,  # 00 zero index place holder
+           -0.502094 ,  # 01    H   Hydrogen
+           -2.892437 ,  # 02    He  Helium
+           -7.434837 ,  # 03    Li  Lithium
+          -14.618701 ,  # 04    Be  Beryllium
+          -24.610037 ,  # 05    B   Boron
+          -37.794204 ,  # 06    C   Carbon
+          -54.532825 ,  # 07    N   Nitrogen
+          -75.002483 ,  # 08    O   Oxygen
+          -99.659686 ,  # 09    F   Fluorine
+         -128.854769 ,  # 10    Ne  Neon
+         -161.860999 ,  # 11    Na  Sodium
+         -199.646948 ,  # 12    Mg  Magnesium
+         -241.944728 ,  # 13    Al  Aluminum
+         -288.947800 ,  # 14    Si  Silicon
+         -340.837016 ,  # 15    P   Phosphorus
+         -397.676523 ,  # 16    S   Sulfur
+         -459.703691 ,  # 17    Cl  Chlorine
+         -527.083295 ,  # 18    Ar  Argon
+         -599.166975 ,  # 19    K   Potassium
+         -676.784184 ,  # 20    Ca  Calcium
+         0.0,0.0,0.0,   # 21-23 transition metals
+         0.0,0.0,0.0,   # 24-26 transition metals
+         0.0,0.0,0.0,   # 27-29 transition metals
+         0.0,           # 30    transition metals
+        -1923.601298 ,  # 31    Ga  Gallium
+        -2075.700329 ,  # 32    Ge  Germanium
+        -2234.578295 ,  # 33    As  Arsenic
+        -2400.243694 ,  # 34    Se  Selenium
+        -2572.850476 ,  # 35    Br  Bromine
+        -2752.487773 ,  # 36    Kr  Krypton
     ]
 
 
     # Ideal gas kinetic energy contribution
 
-    eth = (5.0/2) * kT_298_perMol
+    eThermal = (5.0/2) * kT_298_perMol
 
     if elementNum <len(e0_g4mp2) and e0_g4mp2[elementNum]<0.0:
         e0 = e0_g4mp2[elementNum]
-        e298 = e0 + eth
+        e298 = e0 + eThermal
         return (e0,e298)
+
     else:
         return (0.0,0.0)
 
@@ -640,21 +646,22 @@ def calc_deltaHf ():
     sum_atoms_dhf0   = 0.0
     sum_atoms_dhf298 = 0.0
 
-    if is_molecule():
-        for atom in AtomsList:
-            e0,e298 = E0_atom(atomic_number(atom))
-            sum_atoms_E0 += e0
-            sum_atoms_E298 += e298
+    for atom in AtomsList:
+        e0,e298 = E0_atom(atomic_number(atom))
+        sum_atoms_E0 += e0
+        sum_atoms_E298 += e298
 
-            d0,d298 = atomic_DHF(atomic_number(atom))
-            sum_atoms_dhf0       += d0
-            sum_atoms_dhf298     += d298
-            debug('sumDHF0,sumDHF298 = %.2f,%.2f' % (sum_atoms_dhf0,sum_atoms_dhf298))
-    else:
-        return False
+        d0,d298 = atomic_DHF(atomic_number(atom))
+        sum_atoms_dhf0       += d0
+        sum_atoms_dhf298     += d298
+
+        debug('sumDHF0,sumDHF298 = %.2f,%.2f' %
+            (sum_atoms_dhf0,sum_atoms_dhf298))
 
     dhf0 = (E0 - sum_atoms_E0) * kCalPerHartree + sum_atoms_dhf0
+
     dhf298 = (E298 - sum_atoms_E298) * kCalPerHartree + sum_atoms_dhf298
+
     debug('dhf0,dhf298 = %.2f,%.2f' % (dhf0,dhf298))
 
     return False
@@ -684,19 +691,11 @@ def build_SCF_cmd ():
     global Multiplicity
 
     if Multiplicity != 1:
-        # not a singlet?
         multstr = get_multiplicity_str()
-        # RHF or UHF
         hftype = get_HFtype()
         return ("scf ; %sHF ; %s ; end" % (hftype,multstr))
     else:
         return "scf ; direct ; singlet ; end"
-
-#_______________________________________________________
-def E_spin_orbit ():
-#   E_(SO) =   spin orbit energy
-
-    pass
 
 #_______________________________________________________
 
@@ -709,9 +708,6 @@ def optimize():
     say('optimize.')
 
     send_nwchem_cmd("basis noprint ; * library 6-31G(2df,p) ; end")
-    #send_nwchem_cmd("basis spherical noprint ; * library 6-31G(2df,p) ; end")
-    scfcmd = build_SCF_cmd()
-    send_nwchem_cmd(scfcmd)
 
     # canonical B3LYP spec
     # GAMESS-US b3lyp uses VWN_5
@@ -722,7 +718,9 @@ def optimize():
     b3lyp_Gaussian = 'xc HFexch 0.2 slater 0.8 becke88 nonlocal 0.72 vwn_3 0.19 lyp 0.81'
     b3lyp_NWChem = 'xc b3lyp'
 
-    blips = b3lyp_GAMESS
+    #blips = b3lyp_GAMESS
+    #blips = b3lyp_NWChem
+    blips = b3lyp_Gaussian
 
     if Multiplicity>1:
         send_nwchem_cmd('dft ; odft ; mult %d ; %s ; end' % (Multiplicity,blips))
@@ -734,35 +732,15 @@ def optimize():
 
     set_atoms_list()
 
-    # optimize the geometry, ignore energy and gradient results
-    try:
-        if Multiplicity>1:
-            send_nwchem_cmd("unset tce:*")
-            send_nwchem_cmd("tce ; dft ; end")
-
-            if is_atom():
-                en=nwchem.task_energy("tce")
-            else:
-                en,grad = nwchem.task_optimize("tce")
-
-        else:
-            debug("task_optimize(dft)")
-            en,grad = nwchem.task_optimize("dft")
-
-        #say('DEBUG: optimize: en=%.6f\n' % en)
-    except NWChemError,message:
-        if nwchem.ga_nodeid() == 0:
-            report("NWChem error: %s\n" % message)
-            report("FAILED: B3LYP/6-31G(2df,p) geometry optimization")
-        return True
+    if is_atom():
+        en = nwchem.task_energy("dft")
     else:
-        Eb3lyp = en
+        en,grad = nwchem.task_optimize("dft")
 
-    #report("debug: HF/6-31G(2df,p) SCF:energy = %f Ha" % (en))
+    Eb3lyp = en
+
+    debug('B3LYP/6-31G(2df,p) energy = %f Ha' % (en))
     return False
-
-    pass
-
 
 #_______________________________________________________
 
@@ -780,6 +758,7 @@ def E_zpe ():
     global Hthermal
     global AtomsList
 
+    # these identifiers replicate those used in NWChem freq calculations
     AUKCAL  = 627.5093314
     c       = 2.99792458E+10
     h       = 6.62606957E-27
@@ -790,10 +769,8 @@ def E_zpe ():
 
     if is_atom():
         Ezpe = 0.0
-        Ethermal = 1.5 * Rgas * temperature
+        Ethermal = 1.5 * Rgas * temperature         # 3/2 * RT
         Hthermal = Ethermal + (Rgas * temperature)
-        #Ethermal = 0.001416      # 3/2 * RT
-        #Hthermal = 0.002360      # Ethermal + kT
         return False
 
     # run hessian on equilibrium geometry
@@ -805,14 +782,8 @@ def E_zpe ():
         report("FAILED: Zero Point Energy calculation")
         return True
 
-
     # Handroll the ZPE because NWChem's zpe accumulates
     # truncation error from 3 sigfig physical constants.
-
-    #say ('DEBUG: %d vibrations: ' % len(vibs))
-    #for v in vibs:
-    #    say(' %.1f' % v)
-    #say('\n')
 
     vibsum =0.0
     for freq in vibs:
@@ -821,11 +792,6 @@ def E_zpe ():
 
     cm2Ha = 219474.6    # cm-1 to Hartree conversion
     Ezpe    = vibsum / (2.0 * cm2Ha)
-
-    # get total thermal energy, enthalpy
-    eth = nwchem.rtdb_get("vib:Ethermal")
-    hth = nwchem.rtdb_get("vib:Hthermal")
-    #say("\nDEBUG: NWChem E,H thermal= %.6f, %.6f\n" % (eth,hth))
 
     # shamelessly swipe code from NWCHEM/src/vib_wrtFreq.F
     eth = 0.0
@@ -843,10 +809,10 @@ def E_zpe ():
             xdum = xdum / (1.0 - xdum)
             eth = eth + thetav * (0.5 + xdum)
 
-    # linear boolean is available only after task_freq('scf') runs
-    # NWChem only writes the flag if molecule is linear
-
     eth = eth * Rgas
+
+    # linear boolean is available only after task_freq('???') runs
+    # NWChem only writes the flag if molecule is linear
 
     try:
         is_linear = nwchem.rtdb_get("vib:linear")
@@ -862,7 +828,8 @@ def E_zpe ():
 
     # Hthermal = eth+pV=eth+RT, since pV=RT
     hth = eth + Rgas * temperature
-    debug("Handrolled E,H thermal= %.6f, %.6f\n" % (eth,hth))
+
+    debug("ZPE,E,H thermal= %.6f, %.6f, %.6f\n" % (Ezpe,eth,hth))
 
     Ethermal= eth
     Hthermal= hth
@@ -874,6 +841,7 @@ def E_zpe ():
 def E_mp2 ():
 # 3 E_(MP2) =  MP2(fc)/6-31G(d)//B3LYP/6-31G(2df,p)
 
+    global Multiplicity
     global Emp2
 
     say('MP2(fc).')
@@ -881,58 +849,48 @@ def E_mp2 ():
     send_nwchem_cmd("unset basis:*")
     send_nwchem_cmd("basis noprint ; * library 6-31G* ; end")
 
+    send_nwchem_cmd("unset scf:*")
     scfcmd = build_SCF_cmd()
     send_nwchem_cmd(scfcmd)
 
     send_nwchem_cmd("unset mp2:*")
     send_nwchem_cmd("mp2 ; freeze atomic ; end")
 
-    try:
-        if Multiplicity>1:
-            send_nwchem_cmd("unset tce:*")
-            send_nwchem_cmd("tce ; scf ; mp2 ; freeze atomic ; end")
+    if Multiplicity>1:
+        send_nwchem_cmd("unset tce:*")
+        send_nwchem_cmd("tce ; scf ; mp2 ; freeze atomic ; end")
+        en=nwchem.task_energy("tce")
 
-            en=nwchem.task_energy("tce")
-        else:
-            en=nwchem.task_energy("mp2")
-
-        debug('MP2 frozen: en=%.6f\n' % en)
-    except:
-        report("FAILED: MP2(fc)/6-31G(2df,p) energy")
-        return True
     else:
-        Emp2 = en
+        en=nwchem.task_energy("mp2")
+
+    debug('MP2 frozen: en=%.6f\n' % en)
+
+    Emp2 = en
 
     return False
 
 
 #_______________________________________________________
 def E_ccsdt ():
-# 4 E_(ccsd(t)) =  CCSD(fc,T)/6-31G(d)
     '''get CCSDT(fc)/6-31G(d) energy
     '''
+    global Multiplicity
     global Eccsdt
 
     say("CCSD(T).")
 
-    try:
-        if Multiplicity>1 or is_atom():
-            send_nwchem_cmd("unset tce:*")
-            send_nwchem_cmd("tce ; ccsd(t) ; freeze atomic ; end")
-            en=nwchem.task_energy("tce")
-        else:
-            send_nwchem_cmd("ccsd ; freeze atomic ; end")
-            en=nwchem.task_energy("ccsd(t)")
-
-        debug('CCSD(T): en=%.6f\n' % en)
-
-    except NWChemError,message:
-        if nwchem.ga_nodeid() == 0:
-            report("NWChem error: %s\n" % message)
-            report("FAILED: CCSD(T)/6-31G* single point energy")
-        return True
+    if Multiplicity>1 or is_atom() or is_H2():
+        send_nwchem_cmd("unset tce:*")
+        send_nwchem_cmd("tce ; ccsd(t) ; freeze atomic ; end")
+        en=nwchem.task_energy("tce")
     else:
-        Eccsdt = en
+        send_nwchem_cmd("ccsd ; freeze atomic ; end")
+        en=nwchem.task_energy("ccsd(t)")
+
+    debug('CCSD(T): en=%.6f\n' % en)
+
+    Eccsdt = en
 
     return False
 
@@ -941,7 +899,7 @@ def E_ccsdt ():
 def E_hf_g3lxp ():
     global Ehfg3lxp
 
-# 5 E_(HF/G3LXP) = HF/G3LargeXP
+# energy @ HF/G3LargeXP
 
     send_nwchem_cmd("unset basis:*")
     send_nwchem_cmd('''
@@ -949,18 +907,12 @@ def E_hf_g3lxp ():
           * library g3mp2largexp
         end''')
 
-    try:
-        en = nwchem.task_energy("scf")
-    except NWChemError,message:
-        if nwchem.ga_nodeid() == 0:
-            report("NWChem error: %s\n" % message)
-            report("FAILED: HF/G3LXP energy")
-        return True
-    else:
-        pass
+    en = nwchem.task_energy("scf")
 
     Ehfg3lxp = en
-    #report("debug: HF/G3LargeXP SCF:energy = %f Ha" % (en))
+
+    debug("HF/G3LargeXP energy= %f Ha" % (en))
+
     return False
 
 #_______________________________________________________
@@ -979,22 +931,16 @@ def E_mp2_g3lxp ():
     send_nwchem_cmd("unset mp2:*")
     send_nwchem_cmd("mp2 ; freeze atomic ; end")
 
-    try:
-        if Multiplicity>1 or is_atom():
-            send_nwchem_cmd("unset tce:*")
-            send_nwchem_cmd("tce ; mp2 ; freeze atomic ; end")
-            en=nwchem.task_energy("tce")
-        else:
-            en=nwchem.task_energy("mp2")
-
-        #say('DEBUG: g3mp2large: en=%.6f\n' % en)
-
-    except NWChemError,message:
-        report("NWChem error: %s\n" % message)
-        report("FAILED: MP2(fc)/G3MP2large single point energy")
-        sys.exit(0)
+    if Multiplicity>1 or is_atom():
+        send_nwchem_cmd("unset tce:*")
+        send_nwchem_cmd("tce ; mp2 ; freeze atomic ; end")
+        en=nwchem.task_energy("tce")
     else:
-        Emp2g3lxp = en
+        en=nwchem.task_energy("mp2")
+
+    debug('MP(2,fc)/g3mp2large: en=%.6f\n' % en)
+
+    Emp2g3lxp = en
 
     return False
 
@@ -1005,46 +951,38 @@ def E_hf_augccpvnz (basisset=''):
     send_nwchem_cmd("unset basis:*")
     send_nwchem_cmd(basis_cmd)
 
-    try:
-        en = nwchem.task_energy("scf")
-    except NWChemError,message:
-        if nwchem.ga_nodeid() == 0:
-            report("NWChem error: %s\n" % message)
-            report("FAILED: HF/maug-cc-pV(D+d)Z energy")
-        return 0.0
+    en = nwchem.task_energy("scf")
 
     return en
 
 #_______________________________________________________
 def E_hf1 ():
-# use Truhlars minimally augmented maug-cc-pV(D+d)Z
+
     global Ehf1
     say("HF1.")
 
-    #basisset = 'aug-cc-pVTZ'
-    basisset = 'maug-cc-pV(T+d)Z'
-    en = E_hf_augccpvnz(basisset)
-    if en == 0.0:
-        return True
+    basisset = 'g4mp2-aug-cc-pvtz'
 
+    en = E_hf_augccpvnz(basisset)
     Ehf1 = en
-    #report("\ndebug: HF/%s: energy = %f Ha" % (basisset,en))
+
+    debug("HF/%s energy= %f Ha" % (basisset,en))
+
     return False
 
 #_______________________________________________________
 def E_hf2 ():
-# use Truhlars minimally augmented maug-cc-pV(T+d)Z
+
     global Ehf2
     say("HF2.")
 
-    #basisset = 'aug-cc-pVQZ'
-    basisset = 'maug-cc-pV(Q+d)Z'
-    en = E_hf_augccpvnz(basisset)
-    if en == 0.0:
-        return True
+    basisset = 'g4mp2-aug-cc-pvqz'
 
+    en = E_hf_augccpvnz(basisset)
     Ehf2 = en
-    #report("\ndebug: HF/%s: energy = %f Ha" % (basisset,en))
+
+    debug("HF/%s energy= %f Ha" % (basisset,en))
+
     return False
 
 #_______________________________________________________
@@ -1056,20 +994,19 @@ def E_cbs ():
 
     say('CBS.')
 
-    use_Petersen = False    # use Truhlar CBS extrapolation
-    #use_Petersen = True
-
     if abs(Ehf1) > abs(Ehf2):
         Ehf1,Ehf2 = Ehf2,Ehf1
 
-    if use_Petersen:    # petersen CBS extrapolation
-        a = -1.63
-        cbs = (Ehf2 - Ehf1 * math.exp(a)) / (1 - math.exp(a))
-    else:               # Truhlar CBS extrapolation
+    # Truhlar CBS extrapolation for maug-cc-pvNz basis sets
+    if False:
         a = 3.4
         k1 = math.pow(3,a) / (math.pow(3,a) - math.pow(2,a))
         k2 = math.pow(2,a) / (math.pow(3,a) - math.pow(2,a))
         cbs = k1 * Ehf2 - k2 * Ehf1
+
+    # Petersen CBS extrapolation
+    a = -1.63
+    cbs = (Ehf2 - Ehf1 * math.exp(a)) / (1 - math.exp(a))
 
     Ecbs = cbs
 
@@ -1121,7 +1058,6 @@ def E_hlc ():
 
     if nAlpha < nBeta:
         nAlpha,nBeta = nBeta,nAlpha
-        #say('** a<->b swap: nAlpha=%d nBeta=%d\n' % (nAlpha,nBeta))
 
     # test for single (valence) electron pair species
     if (nOpen == 0) and (nClosed - nFrozen) == 1 and \
@@ -1134,7 +1070,7 @@ def E_hlc ():
     elif Multiplicity > 1:
         hlc = -Ap * (nBeta) - B * (nAlpha-nBeta)
 
-    else:                   # singlet, closed shell
+    else:                   # USUAL CASE: singlet, closed shell
         hlc = -A * (nBeta)
 
     Ehlc = hlc
@@ -1175,7 +1111,7 @@ def E_g4mp2 ():
 
     E298 =  E0 + (Ethermal - Ezpe)
 
-    H298 =  E298 + (Hthermal - Ezpe)
+    H298 =  E0 + (Hthermal - Ezpe)
 
     return False
 
