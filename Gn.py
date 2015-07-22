@@ -56,9 +56,12 @@ class G4_mp2(object):
     """
 
     def __init__(self, charge=0, multiplicity="singlet", tracing=False,
-                 debug=False):
+                 debug=False, integral_memory_cache=3500000000,
+                 integral_disk_cache=0):
         multiplets  = ["(null)", "singlet", "doublet", "triplet", "quartet",
                        "quintet", "hextet","septet", "octet"]
+        self.integral_memory_cache = integral_memory_cache
+        self.integral_disk_cache = integral_disk_cache
         self.nOpen = None
         self.multiplicity_numeric = multiplets.index(multiplicity.lower())
         self.charge = charge
@@ -576,20 +579,16 @@ class G4_mp2(object):
 
         return False
 
-    def build_SCF_cmd(self, integral_memory_cache=1000000000, integral_disk_cache=0):
+    def build_SCF_cmd(self):
         """Prepare SCF block with multiplicity-appropriate choice of
         HF form.
 
-        :param integral_memory_cache: RAM to allow for integral caching, in bytes, per process
-        :type integral_memory_cache : int
-        :param integral_disk_cache: disk to allow for integral caching, in bytes, per process
-        :type integral_disk_cache : int
         :return: SCF control block
         :rtype : str
         """
 
-        memory_cache_words = integral_memory_cache / 8
-        disk_cache_words = integral_disk_cache / 8
+        memory_cache_words = self.integral_memory_cache / 8
+        disk_cache_words = self.integral_disk_cache / 8
 
         tpl = "scf ; semidirect memsize {0} filesize {1}; {2} ; {3} ; end"
         block = tpl.format(memory_cache_words, disk_cache_words,
@@ -720,11 +719,15 @@ class G4_mp2(object):
         b3lyp_NWChem = 'xc b3lyp'
 
         blips = b3lyp_Gaussian
+        memory_cache_words = self.integral_memory_cache / 8
+        disk_cache_words = self.integral_disk_cache / 8
+        mem = "semidirect memsize {0} filesize {1}".format(memory_cache_words,
+                                                           disk_cache_words)
 
         if self.multiplicity != "singlet":
-            self.send_nwchem_cmd('dft ; odft ; mult %d ; %s ; end' % (self.multiplicity_numeric, blips))
+            self.send_nwchem_cmd('dft ; odft ; mult %d ; %s ; %s ; end' % (self.multiplicity_numeric, blips, mem))
         else:
-            self.send_nwchem_cmd('dft ; %s ; end' % blips)
+            self.send_nwchem_cmd('dft ; %s ; %s ; end' % (blips, mem))
 
         # fetch and copy atom names list (tags) which enumerates atoms.
         # only available _after_ SCF statement
