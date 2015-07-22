@@ -698,8 +698,6 @@ class G4_mp2(object):
     def optimize(self):
         """# 1 optimize  B3LYP/6-31G(2df,p)
 
-        :return: failure code (True for failure, False for success)
-        :rtype : bool
         """
 
         self.say('optimize.')
@@ -736,35 +734,22 @@ class G4_mp2(object):
         self.send_nwchem_cmd("driver; maxiter 999; xyz {0}; end".format(self.geohash))
 
         # optimize the geometry, ignore energy and gradient results
-        try:
-            if self.is_atom():
-                en = nwchem.task_energy("dft")
+        if self.is_atom():
+            en = nwchem.task_energy("dft")
 
-            else:
-                self.debug("task_optimize(dft)")
-                en, grad = nwchem.task_optimize("dft")
-
-            #self.say('DEBUG: optimize: en=%.6f\n' % en)
-        except nwchem.NWChemError, message:
-            if nwchem.ga_nodeid() == 0:
-                self.report("NWChem error: %s\n" % message)
-                self.report("FAILED: B3LYP/6-31G(2df,p) geometry optimization")
-            return True
         else:
-            self.Eb3lyp = en
+            self.debug("task_optimize(dft)")
+            en, grad = nwchem.task_optimize("dft")
+
+        self.Eb3lyp = en
 
         #self.report("debug: HF/6-31G(2df,p) SCF:energy = %f Ha" % (en))
-        self.reset_symmetry()
-        return False
 
     def E_zpe(self):
         """Run hessian on equilibrium geometry, get zero point energy.
                                                                               n
         Note: linear tri-atomics and larger give high ZPE values in
         NWChem @ HF/6-31G*
-
-        :return: failure code (True for failure, False for success)
-        :rtype : bool
         """
 
         self.say('ZPE.')
@@ -785,13 +770,7 @@ class G4_mp2(object):
 
         # run hessian on equilibrium geometry
         # ignore ZPE, calculate it from vibrations list
-        try:
-            zpe, vibs, intens = nwchem.task_freq("dft")
-        except nwchem.NWChemError, message:
-            self.report("NWChem error: %s\n" % message)
-            self.report("FAILED: Zero Point Energy calculation")
-            return True
-
+        zpe, vibs, intens = nwchem.task_freq("dft")
 
         # Handroll the ZPE because NWChem's zpe accumulates
         # truncation error from 3 sigfig physical constants.
@@ -842,8 +821,6 @@ class G4_mp2(object):
         self.Ethermal = eth
         self.Hthermal = hth
 
-        return False
-
     def E_mp2(self):
         """Calculate the MP2 energy at the B3LYP-optimized geometry.
 
@@ -886,39 +863,24 @@ class G4_mp2(object):
         """# 4 E_(ccsd(t)) =  CCSD(fc,T)/6-31G(d)
 
         Get CCSDT(fc)/6-31G(d) energy
-
-        :return: failure code (True for failure, False for success)
-        :rtype : bool
         """
 
         self.say("CCSD(T).")
 
-        try:
-            if self.multiplicity != "singlet" or self.is_atom():
-                self.send_nwchem_cmd("unset tce:*")
-                self.send_nwchem_cmd("tce ; ccsd(t) ; freeze atomic ; end")
-                en = nwchem.task_energy("tce")
-            else:
-                self.send_nwchem_cmd("ccsd ; freeze atomic ; end")
-                en = nwchem.task_energy("ccsd(t)")
+        if self.multiplicity != "singlet" or self.is_atom():
+            self.send_nwchem_cmd("unset tce:*")
+            self.send_nwchem_cmd("tce ; ccsd(t) ; freeze atomic ; end")
+            en = nwchem.task_energy("tce")
+        else:
+            self.send_nwchem_cmd("ccsd ; freeze atomic ; end")
+            en = nwchem.task_energy("ccsd(t)")
 
             self.debug('CCSD(T): en=%.6f\n' % en)
 
-        except nwchem.NWChemError, message:
-            if nwchem.ga_nodeid() == 0:
-                self.report("NWChem error: %s\n" % message)
-                self.report("FAILED: CCSD(T)/6-31G* single point energy")
-            return True
-        else:
-            self.Eccsdt = en
-
-        return False
+        self.Eccsdt = en
 
     def E_hf_g3lxp(self):
         """# 5 E_(HF/G3LXP) = HF/G3LargeXP
-
-        :return: failure code (True for failure, False for success)
-        :rtype : bool
         """
 
         self.send_nwchem_cmd("unset basis:*")
@@ -927,26 +889,12 @@ class G4_mp2(object):
               * library g3mp2largexp
             end''')
 
-        try:
-            en = nwchem.task_energy("scf")
-        except nwchem.NWChemError, message:
-            if nwchem.ga_nodeid() == 0:
-                self.report("NWChem error: %s\n" % message)
-                self.report("FAILED: HF/G3LXP energy")
-            return True
-        else:
-            pass
-
+        en = nwchem.task_energy("scf")
         self.Ehfg3lxp = en
         self.debug("HF/G3LargeXP SCF:energy = %f Ha" % (en))
-        return False
-
 
     def E_mp2_g3lxp(self):
         """# 5 E_(HF/G3LXP) = MP2fc/G3LargeXP
-
-        :return: failure code (True for failure, False for success)
-        :rtype : bool
         """
 
         self.send_nwchem_cmd("unset basis:*")
@@ -958,24 +906,16 @@ class G4_mp2(object):
         self.send_nwchem_cmd("unset mp2:*")
         self.send_nwchem_cmd("mp2 ; freeze atomic ; end")
 
-        try:
-            if self.multiplicity != "singlet" or self.is_atom():
-                self.send_nwchem_cmd("unset tce:*")
-                self.send_nwchem_cmd("tce ; mp2 ; freeze atomic ; end")
-                en = nwchem.task_energy("tce")
-            else:
-                en = nwchem.task_energy("mp2")
-
-            self.debug('MP(2,fc)/g3mp2large: en=%.6f\n' % en)
-
-        except nwchem.NWChemError, message:
-            self.report("NWChem error: %s\n" % message)
-            self.report("FAILED: MP2(fc)/G3MP2large single point energy")
-            sys.exit(0)
+        if self.multiplicity != "singlet" or self.is_atom():
+            self.send_nwchem_cmd("unset tce:*")
+            self.send_nwchem_cmd("tce ; mp2 ; freeze atomic ; end")
+            en = nwchem.task_energy("tce")
         else:
-            self.Emp2g3lxp = en
+            en = nwchem.task_energy("mp2")
 
-        return False
+        self.debug('MP(2,fc)/g3mp2large: en=%.6f\n' % en)
+
+        self.Emp2g3lxp = en
 
     def E_hf_augccpvnz(self, basisset):
         """Get HF energy with aug-cc-pV(N)Z basis set.
@@ -990,21 +930,12 @@ class G4_mp2(object):
         self.send_nwchem_cmd("unset basis:*")
         self.send_nwchem_cmd(basis_cmd)
 
-        try:
-            en = nwchem.task_energy("scf")
-        except nwchem.NWChemError, message:
-            if nwchem.ga_nodeid() == 0:
-                self.report("NWChem error: %s\n" % message)
-                self.report("FAILED: HF/{0} energy".format(basisset))
-            return 0.0
+        en = nwchem.task_energy("scf")
 
         return en
 
     def E_hf1(self):
         """Use g4mp2-aug-cc-pvtz basis set to get first HF energy.
-
-        :return: failure code (True for failure, False for success)
-        :rtype : bool
         """
 
         self.say("HF1.")
@@ -1012,12 +943,9 @@ class G4_mp2(object):
         basisset = "g4mp2-aug-cc-pvtz"
 
         en = self.E_hf_augccpvnz(basisset)
-        if en == 0.0:
-            return True
 
         self.Ehf1 = en
         self.debug("HF/%s: energy = %f Ha" % (basisset,en))
-        return False
 
     def E_hf2(self):
         """Use g4mp2-aug-cc-pvqz to get second
@@ -1030,12 +958,9 @@ class G4_mp2(object):
         self.say("HF2.")
         basisset = 'g4mp2-aug-cc-pvqz'
         en = self.E_hf_augccpvnz(basisset)
-        if en == 0.0:
-            return True
 
         self.Ehf2 = en
         self.debug("HF/%s: energy = %f Ha" % (basisset,en))
-        return False
 
     def E_cbs(self):
         """E_(HFlimit) = extrapolated HF limit
@@ -1069,9 +994,6 @@ class G4_mp2(object):
 
     def E_hlc(self):
         """E_hlc =    High Level Correction
-
-        :return: failure code (True for failure, False for success)
-        :rtype : bool
         """
 
         # Correction coefficients in milli Hartrees
@@ -1092,9 +1014,9 @@ class G4_mp2(object):
 
         self.say('HLC.')
 
-        self.nClosed = nwchem.rtdb_get("scf:nclosed")
-        self.nOpen   = nwchem.rtdb_get("scf:nopen")
-        self.nElec   = nwchem.rtdb_get("scf:nelec")
+        nClosed = nwchem.rtdb_get("scf:nclosed")
+        nOpen   = nwchem.rtdb_get("scf:nopen")
+        nElec   = nwchem.rtdb_get("scf:nelec")
         self.nFrozen = self.sum_core_orbitals()
 
         # According to Curtiss,
@@ -1102,18 +1024,18 @@ class G4_mp2(object):
         # nAlpha = num unpaired or remaining valence electrons
         # subject to the constraint that nAlpha >= nBeta
 
-        self.nBeta   = self.nClosed - self.nFrozen
-        self.nAlpha  = self.nElec - self.nFrozen - self.nClosed
+        self.nBeta   = nClosed - self.nFrozen
+        self.nAlpha  = nElec - self.nFrozen - nClosed
 
         self.debug('\nclosed=%d open=%d frozen=%d nAlpha=%d nBeta=%d\n' % \
-                   (self.nClosed, self.nOpen, self.nFrozen, self.nAlpha, self.nBeta))
+                   (nClosed, nOpen, self.nFrozen, self.nAlpha, self.nBeta))
 
         if self.nAlpha < self.nBeta:
             self.nAlpha, self.nBeta = self.nBeta, self.nAlpha
             #self.say('** a<->b swap: nAlpha=%d nBeta=%d\n' % (self.nAlpha,self.nBeta))
 
         # test for single (valence) electron pair species
-        if (self.nOpen == 0) and (self.nClosed - self.nFrozen) == 1 and \
+        if (nOpen == 0) and (nClosed - self.nFrozen) == 1 and \
                 (self.nAlpha == 1) and (self.nBeta == 1):
             hlc = E
 
@@ -1127,8 +1049,6 @@ class G4_mp2(object):
             hlc = -A * (self.nBeta)
 
         self.Ehlc = hlc
-
-        return False
 
     def E_g4mp2(self):
         """
@@ -1168,12 +1088,13 @@ class G4_mp2(object):
         g4mp2_function = [
             self.optimize,
             self.E_zpe,
-            self.E_mp2,
-            self.E_ccsdt,
             self.E_hf_g3lxp,
-            self.E_mp2_g3lxp,
             self.E_hf1,
             self.E_hf2,
+            self.reset_symmetry,
+            self.E_mp2,
+            self.E_ccsdt,
+            self.E_mp2_g3lxp,
             self.E_cbs,
             self.E_hlc,
             self.spin_orbit_energy,
@@ -1182,18 +1103,11 @@ class G4_mp2(object):
         ]
 
         self.init_g4mp2()
-
-        abnormal_end = False
-
         t0=time.time()
 
         for i in range(len(g4mp2_function)):
-            if g4mp2_function[i]():
-                abnormal_end = True
-                break
+            g4mp2_function[i]()
 
         et=time.time()-t0
         self.report("\nWall: %.2f seconds" % et)
-
-        if abnormal_end is False:
-            self.report_all()
+        self.report_all()
