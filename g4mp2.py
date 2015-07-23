@@ -45,7 +45,7 @@ import nwchem
 #________________  PHYSICAL CONSTANTS _________________
 #______________________________________________________
 
-kCalPerHartree  = 6.2750947E+02
+kCalPerHartree  = 627.509451
 Boltzmann       = 1.3806488E-23
 Avogadro        = 6.02214129E+23
 JoulePerKcal    = 4.184E+03
@@ -83,17 +83,13 @@ Ecbs        = 0.0
 Ehlc        = 0.0
 Ethermal    = 0.0
 Hthermal    = 0.0
+ESO         = 0.0
 E0          = 0.0
 E298        = 0.0
 H298        = 0.0
 
 dhf0        = 0.0
 dhf298      = 0.0
-
-# valence electron variables
-nAlpha      = 0
-nBeta       = 0
-nFrozen     = 0
 
 Charge      = 0
 
@@ -517,10 +513,13 @@ def spin_orbit_energy ():
     global Charge
 
     if is_molecule():   # no spin orbit corrections for molecules
-        return 0.0
+        eso = 0.0
     else:       # Its an atom, so AtomsList has only one member
         atom=AtomsList[0]
-        return E_spin_orbit(atomic_number(atom),Charge)
+        eso = E_spin_orbit(atomic_number(atom),Charge)
+        
+    ESO = eso
+    return False
 
 #______________________________________________________
 
@@ -637,19 +636,19 @@ def E0_atom (elementNum=0):
 #
 def calc_deltaHf ():
     global E0
-    global E298
+    global H298
     global dhf0
     global dhf298
 
     sum_atoms_E0     = 0.0
-    sum_atoms_E298   = 0.0
+    sum_atoms_H298   = 0.0
     sum_atoms_dhf0   = 0.0
     sum_atoms_dhf298 = 0.0
 
     for atom in AtomsList:
-        e0,e298 = E0_atom(atomic_number(atom))
+        e0,h298 = E0_atom(atomic_number(atom))
         sum_atoms_E0 += e0
-        sum_atoms_E298 += e298
+        sum_atoms_H298 += h298
 
         d0,d298 = atomic_DHF(atomic_number(atom))
         sum_atoms_dhf0       += d0
@@ -660,7 +659,7 @@ def calc_deltaHf ():
 
     dhf0 = (E0 - sum_atoms_E0) * kCalPerHartree + sum_atoms_dhf0
 
-    dhf298 = (E298 - sum_atoms_E298) * kCalPerHartree + sum_atoms_dhf298
+    dhf298 = (H298 - sum_atoms_H298) * kCalPerHartree + sum_atoms_dhf298
 
     debug('dhf0,dhf298 = %.2f,%.2f' % (dhf0,dhf298))
 
@@ -759,7 +758,8 @@ def E_zpe ():
     global AtomsList
 
     # these identifiers replicate those used in NWChem freq calculations
-    AUKCAL  = 627.5093314
+    #AUKCAL  = 627.5093314  # WRONG!
+    AUKCAL  = kCalPerHartree
     c       = 2.99792458E+10
     h       = 6.62606957E-27
     kgas    = 1.3806488E-16     # cgs units
@@ -997,13 +997,6 @@ def E_cbs ():
     if abs(Ehf1) > abs(Ehf2):
         Ehf1,Ehf2 = Ehf2,Ehf1
 
-    # Truhlar CBS extrapolation for maug-cc-pvNz basis sets
-    if False:
-        a = 3.4
-        k1 = math.pow(3,a) / (math.pow(3,a) - math.pow(2,a))
-        k2 = math.pow(2,a) / (math.pow(3,a) - math.pow(2,a))
-        cbs = k1 * Ehf2 - k2 * Ehf1
-
     # Petersen CBS extrapolation
     a = -1.63
     cbs = (Ehf2 - Ehf1 * math.exp(a)) / (1 - math.exp(a))
@@ -1096,6 +1089,7 @@ def E_g4mp2 ():
     global Ehlc
     global Ethermal
     global Hthermal
+    global ESO
     global E0
     global E298
     global H298
@@ -1105,7 +1099,7 @@ def E_g4mp2 ():
     E0 =    Eccsdt + \
             (Emp2g3lxp - Emp2) + \
             (Ecbs - Ehfg3lxp) + \
-            spin_orbit_energy() + \
+            ESO + \
             Ehlc + \
             scaled_ZPE
 

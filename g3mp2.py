@@ -92,7 +92,7 @@ import nwchem
 #
 #________________  PHYSICAL CONSTANTS _________________
 #______________________________________________________
-kCalPerHartree = 6.2750947E+02
+kCalPerHartree = 627.509451
 Boltzmann = 1.3806488E-23
 Avogadro = 6.02214129E+23
 JoulePerKcal = 4.184E+03
@@ -702,7 +702,8 @@ def E0_atom_qcisdt(elementNum=0):
         -599.160512,     # 19 K     Potassium
         -676.789424,     # 20 Ca    Calcium
                  # elements 21-30 Sc-Zn
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0,
         -1923.538354,     # 31 Ga    Gallium
         -2075.639002,     # 32 Ge    Germanium
         -2234.516874,     # 33 As    Arsenic
@@ -750,7 +751,8 @@ def E0_atom_ccsdt(elementNum=0):
         -599.160438,     # 19 K     Potassium
         -676.789234,     # 20 Ca    Calcium
         # elements 21-30 Sc-Zn
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0,
         -1923.536619,     # 31 Ga
         -2075.637891,     # 32 Ge
         -2234.516031,     # 33 As
@@ -788,19 +790,19 @@ def E0_atom(elementNum=0):
 #
 def calc_deltaHf():
     global E0
-    global E298
+    global H298
     global dhf0
     global dhf298
 
     sum_atoms_E0 = 0.0
-    sum_atoms_E298 = 0.0
+    sum_atoms_H298 = 0.0
     sum_atoms_dhf0 = 0.0
     sum_atoms_dhf298 = 0.0
 
     for atom in AtomsList:
-        e0, e298 = E0_atom(atomic_number(atom))
+        e0, h298 = E0_atom(atomic_number(atom))
         sum_atoms_E0 += e0
-        sum_atoms_E298 += e298
+        sum_atoms_H298 += h298
 
         d0, d298 = atomic_DHF(atomic_number(atom))
         sum_atoms_dhf0 += d0
@@ -810,7 +812,7 @@ def calc_deltaHf():
 
     dhf0 = (E0 - sum_atoms_E0) * kCalPerHartree + sum_atoms_dhf0
 
-    dhf298 = (H298 - sum_atoms_E298) * kCalPerHartree + sum_atoms_dhf298
+    dhf298 = (H298 - sum_atoms_H298) * kCalPerHartree + sum_atoms_dhf298
 
     debug('dhf0,dhf298 = %.2f,%.2f' % (dhf0, dhf298))
 
@@ -860,7 +862,7 @@ def HF_optimize():
     '''
        HF/6-31G(d) optimization
     '''
-    say('HF optimize.')
+    say('optimize.')
     send_nwchem_cmd("basis noprint ; * library 6-31G* ; end")
     scfcmd = build_SCF_cmd()
     send_nwchem_cmd(scfcmd)
@@ -894,7 +896,8 @@ def HF_zpe():
     global Hthermal
     global AtomsList
 
-    AUKCAL = 627.5093314
+    #AUKCAL = 627.5093314   # bogus
+    AUKCAL = kCalPerHartree
     c = 2.99792458E+10
     h = 6.62606957E-27
     kgas = 1.3806488E-16     # cgs units
@@ -902,7 +905,7 @@ def HF_zpe():
 
     temperature = T298
 
-    say("HF zpe.")
+    say("zpe.")
 
     if is_atom():
         Ezpe = 0.0
@@ -1121,10 +1124,6 @@ def HLC_generic(A=0.009170, B=0.004455, C=0.009155, D=0.001947):
     '''calculate High Level Correction term
         from alpha and beta VALENCE electron count.
     '''
-    global nAlpha
-    global nBeta
-    global nFrozen
-    global Ehlc
 
     say('HLC.')
 
@@ -1207,6 +1206,8 @@ def calc_total_energies():
     global E0
     global E298
     global H298
+    global ESO
+    
 
     E0 = Ecc + \
         (Eg3mp2large - Emp2frozen) + \
