@@ -695,6 +695,18 @@ class G4_mp2(object):
         geoblock = "geometry units angstroms print xyz; {0} load {1}; end"
         self.send_nwchem_cmd(geoblock.format(symmetry_block, geofile))
 
+    def vector_prep(self, input, output):
+        """Set up commands to store vectors to a file and/or project or
+        load stored vectors for use as initial guess.
+
+        :param input: name of input basis set
+        :type input : str | None
+        :param output: name of output basis set
+        :type output : str | None
+        """
+
+        pass
+
     def optimize(self):
         """# 1 optimize  B3LYP/6-31G(2df,p)
 
