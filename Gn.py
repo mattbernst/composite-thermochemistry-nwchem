@@ -12,7 +12,7 @@ import nwchem
 #________________  PHYSICAL CONSTANTS _________________
 #______________________________________________________
 
-kCalPerHartree  = 6.2750947E+02
+kCalPerHartree  = 627.509451
 Boltzmann       = 1.3806488E-23
 Avogadro        = 6.02214129E+23
 JoulePerKcal    = 4.184E+03
@@ -88,6 +88,7 @@ class G4_mp2(object):
         self.Ehlc        = 0.0
         self.Ethermal    = 0.0
         self.Hthermal    = 0.0
+        self.ESO         = 0.0
         self.E0          = 0.0
         self.E298        = 0.0
         self.H298        = 0.0
@@ -252,9 +253,9 @@ class G4_mp2(object):
         ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         ]
 
-        if self.is_molecule():
-            for line in heatsOfFormation:
-                self.report(line)
+  
+        for line in heatsOfFormation:
+            self.report(line)
 
     def report_all(self):
         self.report_summary ()
@@ -410,17 +411,18 @@ class G4_mp2(object):
         """Get spin orbit energy correction according to nature of system and charge.
 
         :return: spin orbit energy correction
-        :rtype : float
+        :rtype : boolean
         """
-
+        global ESO
+        
         if self.is_molecule():   # no spin orbit corrections for molecules
             correction = 0.0
         else:       # It's an atom
             atom = self.atoms[0]
             correction = self.E_spin_orbit(self.atomic_number(atom),
                                            self.charge)
-
-        return correction
+        ESO = correction
+        return False
 
     def atomic_DHF (self, elementNum):
         """Get atomic heats of formation at 0 K and 298 K, in
