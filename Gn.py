@@ -71,6 +71,11 @@ class G4_mp2(object):
         else:
             self.hftype = "rhf"
 
+        self.correlated_basis = [("6-31G*", "cartesian"),
+                                 ("g3mp2largexp", "spherical")]
+        self.cbs_basis = [("g4mp2-aug-cc-pvtz", "spherical"),
+                          ("g4mp2-aug-cc-pvqz", "spherical")]
+
         self.tracing = tracing
         self.debug_flag = debug
 
@@ -422,7 +427,7 @@ class G4_mp2(object):
             atom = self.atoms[0]
             correction = self.E_spin_orbit(self.atomic_number(atom),
                                            self.charge)
-            
+
         return correction
 
     def atomic_DHF (self, elementNum):
@@ -679,7 +684,6 @@ class G4_mp2(object):
 
     def reset_symmetry(self):
         """Reload geometry and force symmetry down if TCE must be used.
-
         """
 
         xyzs = glob.glob(self.geohash + "*.xyz")
@@ -695,17 +699,67 @@ class G4_mp2(object):
         geoblock = "geometry units angstroms print xyz; {0} load {1}; end"
         self.send_nwchem_cmd(geoblock.format(symmetry_block, geofile))
 
-    def vector_prep(self, input, output):
+    def basis_prepare(self, basis, input="", output="",
+                      coordinates="spherical", context="scf"):
         """Set up commands to store vectors to a file and/or project or
-        load stored vectors for use as initial guess.
+        load stored vectors for use as initial guess. Also handles
+        switching between basis sets.
 
-        :param input: name of input basis set
-        :type input : str | None
-        :param output: name of output basis set
-        :type output : str | None
+        :param basis: name of current basis set
+        :type basis :str
+        :param input: optional name of basis set for vector input
+        :type input : str
+        :param output: optional name of basis set for vector output
+        :type output : str
+        :param coordinates: "cartesian" or "spherical", for current basis
+        :type coordinates : str
+        :param context: "scf" or "dft" vectors setup context
+        :type context : str
         """
 
-        pass
+        def simplename(basis_name):
+            name = basis_name[:]
+            t = {"-" : "_", "*" : "star", "+" : "plus",
+                 "(" : "", ")" : "", "," : "_"}
+            for key, value in t.items():
+                name = name.replace(key, value)
+
+            return name
+
+        sn = simplename(basis)
+        sn_input = simplename(input)
+        sn_output = simplename(output)
+        basis_cmd = "basis {0} {1} ; * library {2} ; end".format(sn, coordinates, basis)
+        self.send_nwchem_cmd(basis_cmd)
+        self.send_nwchem_cmd('set "ao basis" {0}'.format(sn))
+
+        if input and output:
+            t = "{context}; vectors input project {small} {small}.movecs output {large}.movecs; end"
+            vectors = t.format(context=context, small=sn_input, large=sn_output)
+        elif input:
+            t = "{context}; vectors input {small}.movecs; end"
+            vectors = t.format(context=context, small=sn_input)
+        elif output:
+            t = "{context}; vectors input atomic output {large}.movecs; end"
+            vectors = t.format(context=context, large=sn_output)
+        else:
+            self.say("MUST SUPPLY AT LEAST ONE OF input, output for basis_prepare")
+            sys.exit(1)
+
+        self.send_nwchem_cmd(vectors)
+
+
+    def prepare_scf_vectors(self):
+        """Set up converged scf vectors before first correlated steps so they
+        can be used to initialize later calculations.
+        """
+
+        self.basis_prepare(self.correlated_basis[0][0],
+                           output=self.correlated_basis[0][0],
+                           coordinates=self.correlated_basis[0][1])
+
+        self.send_nwchem_cmd(self.build_SCF_cmd())
+        nwchem.task_energy("scf")
 
     def optimize(self):
         """# 1 optimize  B3LYP/6-31G(2df,p)
@@ -844,8 +898,9 @@ class G4_mp2(object):
 
         self.say('MP2(fc).')
 
-        self.send_nwchem_cmd("unset basis:*")
-        self.send_nwchem_cmd("basis noprint ; * library 6-31G* ; end")
+        self.basis_prepare(self.correlated_basis[0][0],
+                           input=self.correlated_basis[0][0],
+                           coordinates=self.correlated_basis[0][1])
 
         scfcmd = self.build_SCF_cmd()
         self.send_nwchem_cmd(scfcmd)
@@ -895,11 +950,10 @@ class G4_mp2(object):
         """# 5 E_(HF/G3LXP) = HF/G3LargeXP
         """
 
-        self.send_nwchem_cmd("unset basis:*")
-        self.send_nwchem_cmd('''
-            basis spherical
-              * library g3mp2largexp
-            end''')
+        self.basis_prepare(self.correlated_basis[1][0],
+                           input=self.correlated_basis[0][0],
+                           output=self.correlated_basis[1][0],
+                           coordinates=self.correlated_basis[1][1])
 
         en = nwchem.task_energy("scf")
         self.Ehfg3lxp = en
@@ -909,11 +963,9 @@ class G4_mp2(object):
         """# 5 E_(HF/G3LXP) = MP2fc/G3LargeXP
         """
 
-        self.send_nwchem_cmd("unset basis:*")
-        self.send_nwchem_cmd('''
-            basis spherical
-              * library g3mp2largexp
-            end''')
+        self.basis_prepare(self.correlated_basis[1][0],
+                           input=self.correlated_basis[1][0],
+                           coordinates=self.correlated_basis[1][1])
 
         self.send_nwchem_cmd("unset mp2:*")
         self.send_nwchem_cmd("mp2 ; freeze atomic ; end")
@@ -929,35 +981,21 @@ class G4_mp2(object):
 
         self.Emp2g3lxp = en
 
-    def E_hf_augccpvnz(self, basisset):
-        """Get HF energy with aug-cc-pV(N)Z basis set.
-
-        :param basisset: name of basis set
-        :type basisset : str
-        :return: energy
-        :rtype : float
-        """
-
-        basis_cmd = ('basis spherical ; * library %s ; end' % basisset)
-        self.send_nwchem_cmd("unset basis:*")
-        self.send_nwchem_cmd(basis_cmd)
-
-        en = nwchem.task_energy("scf")
-
-        return en
-
     def E_hf1(self):
         """Use g4mp2-aug-cc-pvtz basis set to get first HF energy.
         """
 
         self.say("HF1.")
 
-        basisset = "g4mp2-aug-cc-pvtz"
+        self.basis_prepare(self.cbs_basis[0][0],
+                           input=self.correlated_basis[0][0],
+                           output=self.cbs_basis[0][0],
+                           coordinates=self.cbs_basis[0][1])
 
-        en = self.E_hf_augccpvnz(basisset)
+        en = nwchem.task_energy("scf")
 
         self.Ehf1 = en
-        self.debug("HF/%s: energy = %f Ha" % (basisset,en))
+        self.debug("HF/%s: energy = %f Ha" % (self.cbs_basis[0][0], en))
 
     def E_hf2(self):
         """Use g4mp2-aug-cc-pvqz to get second
@@ -968,11 +1006,16 @@ class G4_mp2(object):
         """
 
         self.say("HF2.")
-        basisset = 'g4mp2-aug-cc-pvqz'
-        en = self.E_hf_augccpvnz(basisset)
+
+        self.basis_prepare(self.cbs_basis[1][0],
+                           input=self.cbs_basis[0][0],
+                           output=self.cbs_basis[1][0],
+                           coordinates=self.cbs_basis[1][1])
+
+        en = nwchem.task_energy("scf")
 
         self.Ehf2 = en
-        self.debug("HF/%s: energy = %f Ha" % (basisset,en))
+        self.debug("HF/%s: energy = %f Ha" % (self.cbs_basis[0][0], en))
 
     def E_cbs(self):
         """E_(HFlimit) = extrapolated HF limit
@@ -1100,6 +1143,7 @@ class G4_mp2(object):
         g4mp2_function = [
             self.optimize,
             self.E_zpe,
+            self.prepare_scf_vectors,
             self.E_hf_g3lxp,
             self.E_hf1,
             self.E_hf2,
