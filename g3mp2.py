@@ -330,7 +330,7 @@ def report(s):
        add newline to stderr
     '''
     say(s + '\n')
-    log(s)
+    #log(s)
 
 
 # debug_flag = True          # console stderr output
@@ -931,8 +931,8 @@ def HF_zpe():
     Ezpe = vibsum / (2.0 * cm2Ha)
 
     # get total thermal energy, enthalpy
-    eth = nwchem.rtdb_get("vib:Ethermal")
-    hth = nwchem.rtdb_get("vib:Hthermal")
+    eth = nwchem.rtdb_get("vib:ethermal")
+    hth = nwchem.rtdb_get("vib:hthermal")
     debug("NWChem zpe,E,H thermal= %.6f, %.6f, %.6f\n" % (Ezpe,eth, hth))
 
     eth = 0.0
