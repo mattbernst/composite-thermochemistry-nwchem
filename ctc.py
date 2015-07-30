@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding:utf-8 mode:python; tab-width:4; indent-tabs-mode:nil; py-indent-offset:4 -*-
 import sys
 import argparse
@@ -314,12 +315,17 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--model", help="Thermochemical model to use", default="g3mp2-ccsdt")
     parser.add_argument("-c", "--charge", help="System charge", type=int, default=0)
     parser.add_argument("-g", "--xyz", help="XYZ geometry file", default="")
+    parser.add_argument("--csv", help="CSV file describing a batch of systems to run", default="")
     parser.add_argument("-v", "--verbose", help="If activated, show job output as it executes", action="store_true", default=False)
     parser.add_argument("--noclean", help="If active, don't clean up temporary files after calculation", action="store_true", default=False)
     parser.add_argument("--force", help="If active, re-run a calculation even when output file already exists", action="store_true", default=False)
     parser.add_argument("--tmpdir", help="Temporary directory", default="/tmp/")
     args = parser.parse_args()
-    error = main(args)
-    if error:
+    if not (args.xyz or args.csv):
         parser.print_help()
+        sys.stderr.write("\nYou must supply an .xyz system geometry file or a .csv file describing multiple systems.\n")
+    else:
+        error = main(args)
+        if error:
+            parser.print_help()
 
