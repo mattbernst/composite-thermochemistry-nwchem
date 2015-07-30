@@ -9,6 +9,7 @@ import shlex
 import json
 import time
 import csv
+import pprint
 
 tpl = """start {startname}
 
@@ -63,7 +64,7 @@ class Runner(object):
 
         return result
 
-    def get_deck(self):
+    def get_deck(self, force_c1_symmetry=False):
         """Create a complete job deck for execution. Also return data needed
         to set up job execution.
         """
@@ -74,7 +75,7 @@ class Runner(object):
                                        self.multiplicity, self.charge)
 
         #symmetry auto-detection will activate if no explicit symmetry set
-        symmetry = ""
+        symmetry = {True : "symmetry c1", False : ""}[force_c1_symmetry]
 
         #G3 (MP2, CCSDT)
         if self.model == "g3mp2-ccsdt":
@@ -239,6 +240,8 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
             if not self.noclean:
                 os.system("rm -rf {0}".format(jobdata["tmpdir"]))
 
+            return ""
+
         #Job failed somehow
         else:
             cause_detected = False
@@ -250,16 +253,27 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                       "driver_energy_step: energy failed" :
                       "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
                       "driver: task_gradient failed" :
-                      "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location}
+                      "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
+                      "sym_center_map is inconsistent" :
+                      "Symmetry problems with geometry. Forcing C1.",
+                      "non-Abelian symmetry not permitted" :
+                      "Symmetry problems with geometry. Forcing C1."}
+
+            cause = ""
             for k, v in sorted(errors.items()):
                 if k in logdata:
-                    cause_detected = True
                     sys.stderr.write(v + "\n")
+                    cause = v
 
-            if not cause_detected:
+            #Sometimes autosym fails, but forcing C1 allows job to run
+            if cause.startswith("Symmetry problems"):
+                deck = self.get_deck(force_c1_symmetry=True)
+                return self.run_and_extract(deck)                    
+
+            if not cause:
                 sys.stderr.write("Unknown error. See details in {}\n".format(log_location))
 
-            sys.exit(1)
+            return cause
 
     def get_memory(self):
         """Automatically get available memory (Linux only)
@@ -318,6 +332,8 @@ def main(args):
     m.run_and_extract(deck)
 
 def csvmain(args):
+    failures = []
+    
     with open(args.csv) as csvfile:
         rows = [r for r in csv.DictReader(csvfile)]
 
@@ -328,7 +344,16 @@ def csvmain(args):
                    row["Multiplicity"], args.nproc, args.memory, args.tmpdir,
                    args.verbose, args.noclean, args.force)
         deck = m.get_deck()
-        m.run_and_extract(deck)
+        failure = m.run_and_extract(deck)
+        if failure:
+            failures.append((row["System"], row["Charge"], row["Multiplicity"],
+                             failure))
+
+    print "{} of {} jobs successfully ran".format(len(rows) - len(failures),
+                                                  len(rows))
+    if failures:
+        print("Failures:")
+        pprint.pprint(failures)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="Treat a chemical system with one of the following composite thermochemical models: " + ", ".join(Runner.models) + ". An .xyz file or appropriate .csv file is required as input.")
