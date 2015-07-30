@@ -190,11 +190,13 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
             with open(jsfile, "w") as jshandle:
                 json.dump(records, jshandle, sort_keys=True, indent=2)
 
-        #Otherwise...
+        #Job failed somehow
         else:
             logdata = "".join(log)
             errors = {"no. of electrons and multiplicity not compatible" :
-                      "The multiplicity appears to be incorrect for the given system and charge."}
+                      "The multiplicity appears to be incorrect for the given system and charge.",
+                      "bas_tag_lib: no such basis available" :
+                      "Input contains unparameterized elements. These methods are tested only for main group elements through the second row."}
             for k, v in sorted(errors.items()):
                 if k in logdata:
                     sys.stderr.write(v + "\n")
