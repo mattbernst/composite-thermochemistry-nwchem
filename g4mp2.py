@@ -256,7 +256,7 @@ def report(s):
     '''write to stderr,stdout
        add newline to stderr
     '''
-    say(s+'\n')
+    #say(s+'\n')
     log(s)
 
 

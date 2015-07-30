@@ -68,17 +68,30 @@ class Runner(object):
         startname = os.path.basename(self.geofile).split(".xyz")[0]
         jobname = "{}_{}".format(startname, self.model)
 
+        symmetry = ""
+
+        #G3 (MP2, CCSDT)
         if self.model == "g3mp2-ccsdt":
             pymodel = "g3mp2.py"
             m = """import g3mp2
 g3mp2.G3MP2(charge={charge}, mult={mult})""".format(charge=self.charge, mult=repr(self.multiplicity))
-            symmetry = ""
+            if self.multiplicity != "singlet":
+                symmetry = "symmetry c1"
 
+        #G3 (MP2, QCISDT)
         elif self.model == "g3mp2-qcisdt":
             pymodel = "g3mp2.py"
             m = """import g3mp2
 g3mp2.G3MP2(charge={charge}, mult={mult}, use_qcisdt_f=True)""".format(charge=self.charge, mult=repr(self.multiplicity))
             symmetry = "symmetry c1"
+
+        #G4 (MP2)
+        elif self.model == "g4mp2":
+            pymodel = "g4mp2.py"
+            m = """import g4mp2
+g4mp2.G4MP2(charge={charge}, mult={mult})""".format(charge=self.charge, mult=repr(self.multiplicity))
+            if self.multiplicity != "singlet":
+                symmetry = "symmetry c1"
 
         deck = tpl.format(startname=startname, memory=memory_per_core,
                           jobname=jobname, structure=self.geofile,
