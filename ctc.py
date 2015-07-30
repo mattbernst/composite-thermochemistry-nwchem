@@ -31,7 +31,7 @@ task python
 class Runner(object):
     models = ["g3mp2-ccsdt", "g3mp2-qcisdt", "g4mp2", "gn-g4mp2"]
     def __init__(self, model, geofile, charge, multiplicity, nproc, memory,
-                 tmpdir, verbose):
+                 tmpdir, verbose, noclean, force):
         self.model = model
         self.geofile = geofile
         self.charge = charge
@@ -40,6 +40,8 @@ class Runner(object):
         self.memory = memory or self.get_memory()
         self.verbose = verbose
         self.tmpdir = tmpdir
+        self.noclean = noclean
+        self.force = force
 
     def get_multiplicity(self, mult):
         """Validate or translate multiplicity.
@@ -66,7 +68,8 @@ class Runner(object):
 
         memory_per_core = self.memory / self.nproc
         startname = os.path.basename(self.geofile).split(".xyz")[0]
-        jobname = "{}_{}".format(startname, self.model)
+        jobname = "{}_{}_{}_{}".format(startname, self.model,
+                                       self.multiplicity, self.charge)
 
         symmetry = ""
 
@@ -111,21 +114,24 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         deck = tpl.format(startname=startname, memory=memory_per_core,
                           jobname=jobname, structure=self.geofile,
                           composite=m, symmetry=symmetry)
+        jsfile = jobname[:-3] + ".js"
+        tmpdir = self.tmpdir + jobname
 
         return {"deck" : deck, "pymodel" : pymodel, "geometry" : self.geofile,
-                "jobname" : jobname}
+                "jobname" : jobname, "jsfile" : jsfile, "tmpdir" : tmpdir}
 
     def run(self, jobdata):
-        """Run NWChem for a given deck. Trim and store log file.
+        """Run NWChem for a given deck.
         """
 
+        tmpdir = jobdata["tmpdir"]
         t = jobdata["jobname"]
-        tmpdir = self.tmpdir + t
         if not os.path.exists(tmpdir):
             os.makedirs(tmpdir)
 
         deckfile = t + ".nw"
         logfile = deckfile[:-3] + ".log"
+        log_location = tmpdir + "/" + logfile
         
         with open(tmpdir + "/" + deckfile, "w") as outfile:
             outfile.write(jobdata["deck"])
@@ -147,8 +153,6 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                            str(self.charge), self.multiplicity])
         print(banner)
 
-        t0 = time.time()
-
         if not self.verbose:
             cmd = shlex.split(runner)
             command = ["/bin/bash", "-i", "-c"] + [" ".join(cmd)]
@@ -159,9 +163,24 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         else:
             os.system(runner)
 
+        return log_location
+
+    def run_and_extract(self, jobdata):
+        """Run calculation job and handle logged output, including helpful
+        error messages.
+
+        Testing error cases:
+         -For unparameterized elements, try hydrogen selenide
+         -For multiplicity, try neutral ammonia, triplet
+         -For geometry optimization failure, try +4 ammonia, triplet
+          (it is surprisingly hard to make geometry optimization fail)
+        """
+        
+        t0 = time.time()
+        log_location = self.run(jobdata)
         elapsed = time.time() - t0
 
-        with open(tmpdir + "/" + logfile) as lf:
+        with open(log_location) as lf:
             log = lf.readlines()
 
         extracting = False
@@ -180,15 +199,17 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         print(summary)
 
         #Job ran to expected completion
-        if summary:
-            jsfile = deckfile[:-3] + ".js"
+        if summary:            
             records = {"summary" : summary, "multiplicity" : self.multiplicity,
                        "nproc" : self.nproc, "memory" : self.memory,
                        "geofile" : self.geofile, "model" : self.model,
                        "charge" : self.charge, "elapsed" : elapsed}
         
-            with open(jsfile, "w") as jshandle:
+            with open(jobdata["jsfile"], "w") as jshandle:
                 json.dump(records, jshandle, sort_keys=True, indent=2)
+
+            if not self.noclean:
+                os.system("rm -rf {0}".format(jobdata["tmpdir"]))
 
         #Job failed somehow
         else:
@@ -196,7 +217,11 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
             errors = {"no. of electrons and multiplicity not compatible" :
                       "The multiplicity appears to be incorrect for the given system and charge.",
                       "bas_tag_lib: no such basis available" :
-                      "Input contains unparameterized elements. These methods are tested only for main group elements through the second row."}
+                      "Input contains unparameterized elements. These methods are tested only for main group elements through the second row.",
+                      "driver_energy_step: energy failed" :
+                      "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
+                      "driver: task_gradient failed" :
+                      "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location}
             for k, v in sorted(errors.items()):
                 if k in logdata:
                     sys.stderr.write(v + "\n")
@@ -249,12 +274,13 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
 def main(args):
     try:
         m = Runner(args.model, args.xyz, args.charge, args.multiplicity,
-                   args.nproc, args.memory, args.tmpdir, args.verbose)
+                   args.nproc, args.memory, args.tmpdir, args.verbose,
+                   args.noclean, args.force)
         deck = m.get_deck()
     except:
         return True
 
-    m.run(deck)
+    m.run_and_extract(deck)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="Treat a chemical system with one of the following composite thermochemical models: " + ", ".join(Runner.models) + ". An .xyz file or appropriate .csv file is required as input.")
@@ -264,7 +290,9 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--model", help="Thermochemical model to use", default="g3mp2-ccsdt")
     parser.add_argument("-c", "--charge", help="System charge", type=int, default=0)
     parser.add_argument("-g", "--xyz", help="XYZ geometry file", default="")
-    parser.add_argument("-v", "--verbose", help="If active, show job output as it executes", action="store_true", default=False)
+    parser.add_argument("-v", "--verbose", help="If activated, show job output as it executes", action="store_true", default=False)
+    parser.add_argument("--noclean", help="If active, don't clean up temporary files after calculation", action="store_true", default=False)
+    parser.add_argument("--force", help="If active, re-run a calculation even when output file already exists", action="store_true", default=False)
     parser.add_argument("--tmpdir", help="Temporary directory", default="/tmp/")
     args = parser.parse_args()
     error = main(args)
