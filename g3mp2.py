@@ -858,6 +858,14 @@ def build_SCF_cmd():
 
 #______________________________________________________
 
+def limits_high():
+    """Increase iterations allowed for geometry optimization and electronic
+    convergence.
+    """
+
+    send_nwchem_cmd("scf; maxiter 999; end")
+    send_nwchem_cmd("driver; maxiter 999; end")
+
 def HF_optimize():
     '''
        HF/6-31G(d) optimization

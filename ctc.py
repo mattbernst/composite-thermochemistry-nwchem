@@ -8,6 +8,7 @@ import subprocess
 import shlex
 import json
 import time
+import csv
 
 tpl = """start {startname}
 
@@ -72,6 +73,7 @@ class Runner(object):
         jobname = "{}_{}_{}_{}".format(startname, self.model,
                                        self.multiplicity, self.charge)
 
+        #symmetry auto-detection will activate if no explicit symmetry set
         symmetry = ""
 
         #G3 (MP2, CCSDT)
@@ -113,7 +115,8 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                 symmetry = "symmetry c1"
 
         deck = tpl.format(startname=startname, memory=memory_per_core,
-                          jobname=jobname, structure=self.geofile,
+                          jobname=jobname,
+                          structure=os.path.basename(self.geofile),
                           composite=m, symmetry=symmetry)
         
         tmpdir = self.tmpdir + jobname
@@ -238,6 +241,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
 
         #Job failed somehow
         else:
+            cause_detected = False
             logdata = "".join(log)
             errors = {"no. of electrons and multiplicity not compatible" :
                       "The multiplicity appears to be incorrect for the given system and charge.",
@@ -249,7 +253,13 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                       "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location}
             for k, v in sorted(errors.items()):
                 if k in logdata:
+                    cause_detected = True
                     sys.stderr.write(v + "\n")
+
+            if not cause_detected:
+                sys.stderr.write("Unknown error. See details in {}\n".format(log_location))
+
+            sys.exit(1)
 
     def get_memory(self):
         """Automatically get available memory (Linux only)
@@ -307,6 +317,19 @@ def main(args):
 
     m.run_and_extract(deck)
 
+def csvmain(args):
+    with open(args.csv) as csvfile:
+        rows = [r for r in csv.DictReader(csvfile)]
+
+    for j, row in enumerate(rows):
+        msg = "Running {} of {}".format(j + 1, len(rows))
+        print(msg)
+        m = Runner(args.model, row["System"], row["Charge"],
+                   row["Multiplicity"], args.nproc, args.memory, args.tmpdir,
+                   args.verbose, args.noclean, args.force)
+        deck = m.get_deck()
+        m.run_and_extract(deck)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="Treat a chemical system with one of the following composite thermochemical models: " + ", ".join(Runner.models) + ". An .xyz file or appropriate .csv file is required as input.")
     parser.add_argument("-n", "--nproc", help="Number of processor cores to use (auto-assigned if not chosen)", type=int,default=0)
@@ -321,11 +344,16 @@ if __name__ == "__main__":
     parser.add_argument("--force", help="If active, re-run a calculation even when output file already exists", action="store_true", default=False)
     parser.add_argument("--tmpdir", help="Temporary directory", default="/tmp/")
     args = parser.parse_args()
+    
     if not (args.xyz or args.csv):
         parser.print_help()
         sys.stderr.write("\nYou must supply an .xyz system geometry file or a .csv file describing multiple systems.\n")
-    else:
+        
+    elif args.xyz:
         error = main(args)
         if error:
             parser.print_help()
+
+    elif args.csv:
+        csvmain(args)
 
