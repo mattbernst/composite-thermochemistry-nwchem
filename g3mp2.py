@@ -329,8 +329,8 @@ def report(s):
     '''write to stderr,stdout
        add newline to stderr
     '''
-    say(s + '\n')
-    #log(s)
+    #say(s + '\n')
+    log(s)
 
 
 # debug_flag = True          # console stderr output

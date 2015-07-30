@@ -5,6 +5,8 @@ import os
 import shutil
 import subprocess
 import shlex
+import json
+import time
 
 tpl = """start {startname}
 
@@ -73,13 +75,14 @@ g3mp2.G3MP2(charge={charge}, mult={mult})""".format(charge=self.charge, mult=rep
                               jobname=jobname, structure=self.geofile,
                               composite=m)
 
-        return {"deck" : deck, "pymodel" : pymodel, "geometry" : self.geofile}
+        return {"deck" : deck, "pymodel" : pymodel, "geometry" : self.geofile,
+                "jobname" : jobname}
 
     def run(self, jobdata):
-        """Run NWChem for a given deck.
+        """Run NWChem for a given deck. Trim and store log file.
         """
 
-        t = os.path.basename(self.geofile).split(".xyz")[0] + "_" + self.model
+        t = jobdata["jobname"]
         tmpdir = self.tmpdir + t
         if not os.path.exists(tmpdir):
             os.makedirs(tmpdir)
@@ -103,7 +106,11 @@ g3mp2.G3MP2(charge={charge}, mult={mult})""".format(charge=self.charge, mult=rep
         else:
             runner = "cd {0} && mpirun -np {1} nwchem {2} {3} {4}".format(tmpdir, self.nproc, deckfile, redirector, logfile)
 
-        print(runner)
+        banner = " ".join(["Running:", self.model, self.geofile,
+                           str(self.charge), self.multiplicity])
+        print(banner)
+
+        t0 = time.time()
 
         if not self.verbose:
             cmd = shlex.split(runner)
@@ -114,6 +121,35 @@ g3mp2.G3MP2(charge={charge}, mult={mult})""".format(charge=self.charge, mult=rep
 
         else:
             os.system(runner)
+
+        elapsed = time.time() - t0
+
+        with open(tmpdir + "/" + logfile) as lf:
+            log = lf.readlines()
+
+        extracting = False
+        extracted = []
+        for line in log:
+            if "~~~" in line:
+                extracting = True
+
+            if extracting:
+                extracted.append(line)
+                
+            if line.strip().split()[:2] == ["Task", "times"]:
+                extracting = False
+
+        summary = "".join(extracted)
+        print(summary)
+
+        jsfile = deckfile[:-3] + ".js"
+        records = {"summary" : summary, "multiplicity" : self.multiplicity,
+                   "nproc" : self.nproc, "memory" : self.memory,
+                   "geofile" : self.geofile, "model" : self.model,
+                   "charge" : self.charge, "elapsed" : elapsed}
+        
+        with open(jsfile, "w") as jshandle:
+            json.dump(records, jshandle, sort_keys=True, indent=2)
 
     def get_memory(self):
         """Automatically get available memory (Linux only)
