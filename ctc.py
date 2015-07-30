@@ -14,6 +14,7 @@ memory {memory} mb
 title {jobname}
 
 geometry units angstroms print xyz
+ {symmetry}
  load {structure}
 end
 
@@ -71,9 +72,17 @@ class Runner(object):
             pymodel = "g3mp2.py"
             m = """import g3mp2
 g3mp2.G3MP2(charge={charge}, mult={mult})""".format(charge=self.charge, mult=repr(self.multiplicity))
-            deck = tpl.format(startname=startname, memory=memory_per_core,
-                              jobname=jobname, structure=self.geofile,
-                              composite=m)
+            symmetry = ""
+
+        elif self.model == "g3mp2-qcisdt":
+            pymodel = "g3mp2.py"
+            m = """import g3mp2
+g3mp2.G3MP2(charge={charge}, mult={mult}, use_qcisdt_f=True)""".format(charge=self.charge, mult=repr(self.multiplicity))
+            symmetry = "symmetry c1"
+
+        deck = tpl.format(startname=startname, memory=memory_per_core,
+                          jobname=jobname, structure=self.geofile,
+                          composite=m, symmetry=symmetry)
 
         return {"deck" : deck, "pymodel" : pymodel, "geometry" : self.geofile,
                 "jobname" : jobname}
@@ -209,9 +218,9 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="Treat a chemical system with one of the following composite thermochemical models: " + ", ".join(Runner.models) + ". An .xyz file or appropriate .csv file is required as input.")
     parser.add_argument("-n", "--nproc", help="Number of processor cores to use (auto-assigned if not chosen)", type=int,default=0)
-    parser.add_argument("-m", "--memory", help="Maximum memory to use, in megabytes (auto-assigned if not chosen)", default=0)
+    parser.add_argument("--memory", help="Maximum memory to use, in megabytes (auto-assigned if not chosen)", default=0)
     parser.add_argument("--multiplicity", help="System spin multiplicity", default="singlet")
-    parser.add_argument("--model", help="Thermochemical model to use", default="g3mp2-ccsdt")
+    parser.add_argument("-m", "--model", help="Thermochemical model to use", default="g3mp2-ccsdt")
     parser.add_argument("-c", "--charge", help="System charge", type=int, default=0)
     parser.add_argument("-g", "--xyz", help="XYZ geometry file", default="")
     parser.add_argument("-v", "--verbose", help="If active, show job output as it executes", action="store_true", default=False)
