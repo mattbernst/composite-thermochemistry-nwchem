@@ -114,24 +114,37 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         deck = tpl.format(startname=startname, memory=memory_per_core,
                           jobname=jobname, structure=self.geofile,
                           composite=m, symmetry=symmetry)
-        jsfile = jobname[:-3] + ".js"
+        
         tmpdir = self.tmpdir + jobname
+        deckfile = jobname + ".nw"
+        jsfile = deckfile[:-3] + ".js"
+        logfile = deckfile[:-3] + ".log"
+        log_location = tmpdir + "/" + logfile
 
         return {"deck" : deck, "pymodel" : pymodel, "geometry" : self.geofile,
-                "jobname" : jobname, "jsfile" : jsfile, "tmpdir" : tmpdir}
+                "jobname" : jobname, "jsfile" : jsfile, "tmpdir" : tmpdir,
+                "deckfile" : deckfile, "logfile" : logfile,
+                "log_location" : log_location}
+
+    def get_banner(self, prefix):
+        """Get a small banner to describe the job currently being run.
+        """
+        
+        banner = " ".join([prefix, self.model, self.geofile,
+                           str(self.charge), self.multiplicity])
+        return banner
 
     def run(self, jobdata):
         """Run NWChem for a given deck.
         """
 
         tmpdir = jobdata["tmpdir"]
+        deckfile = jobdata["deckfile"]
+        logfile = jobdata["logfile"]
+        
         t = jobdata["jobname"]
         if not os.path.exists(tmpdir):
             os.makedirs(tmpdir)
-
-        deckfile = t + ".nw"
-        logfile = deckfile[:-3] + ".log"
-        log_location = tmpdir + "/" + logfile
         
         with open(tmpdir + "/" + deckfile, "w") as outfile:
             outfile.write(jobdata["deck"])
@@ -149,8 +162,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         else:
             runner = "cd {0} && mpirun -np {1} nwchem {2} {3} {4}".format(tmpdir, self.nproc, deckfile, redirector, logfile)
 
-        banner = " ".join(["Running:", self.model, self.geofile,
-                           str(self.charge), self.multiplicity])
+        banner = self.get_banner("Running:")
         print(banner)
 
         if not self.verbose:
@@ -163,22 +175,34 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         else:
             os.system(runner)
 
-        return log_location
-
     def run_and_extract(self, jobdata):
         """Run calculation job and handle logged output, including helpful
         error messages.
 
         Testing error cases:
          -For unparameterized elements, try hydrogen selenide
-         -For multiplicity, try neutral ammonia, triplet
+         -For bad multiplicity, try neutral ammonia, triplet
          -For geometry optimization failure, try +4 ammonia, triplet
           (it is surprisingly hard to make geometry optimization fail)
         """
-        
-        t0 = time.time()
-        log_location = self.run(jobdata)
-        elapsed = time.time() - t0
+
+        log_location = jobdata["log_location"]
+
+        if not self.force and os.path.exists(jobdata["jsfile"]):
+            rerun = True
+            banner = self.get_banner("Skipping, already ran:")
+            print(banner)
+            with open(jobdata["jsfile"]) as jsin:
+                serialized = jsin.read()
+            deserialized = json.loads(serialized)
+            print(deserialized["summary"])
+            return
+
+        else:
+            rerun = False
+            t0 = time.time()
+            self.run(jobdata)
+            elapsed = time.time() - t0
 
         with open(log_location) as lf:
             log = lf.readlines()
