@@ -139,7 +139,7 @@ class G4_mp2(object):
            :type s : str
         """
 
-        self.say(s + '\n')
+        #self.say(s + '\n')
         self.log(s)
 
     def debug(self, s):
@@ -1133,7 +1133,7 @@ class G4_mp2(object):
 
         return False
 
-    def G4MP2(self):
+    def run(self):
         """Calculate G4MP2 energy for a system that has already been prepared.
 
         """

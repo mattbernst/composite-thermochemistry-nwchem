@@ -93,6 +93,21 @@ g4mp2.G4MP2(charge={charge}, mult={mult})""".format(charge=self.charge, mult=rep
             if self.multiplicity != "singlet":
                 symmetry = "symmetry c1"
 
+        #G4 (MP2), alternative implementation
+        elif self.model == "gn-g4mp2":
+            #allow up to 40% of memory to be used for SCF integral caching
+            #value is in bytes rather than megabytes
+            #N.B.: default memory partitioning allocates 50% of total
+            #memory to global data, and integral cache must fit within
+            #global memory section
+            integral_cache = int(memory_per_core * 2 ** 20 * 0.4)
+            pymodel = "Gn.py"
+            m = """import Gn
+model=Gn.G4_mp2(charge={charge}, multiplicity={mult}, integral_memory_cache={cache})
+model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=integral_cache)
+            if self.multiplicity != "singlet":
+                symmetry = "symmetry c1"
+
         deck = tpl.format(startname=startname, memory=memory_per_core,
                           jobname=jobname, structure=self.geofile,
                           composite=m, symmetry=symmetry)
@@ -164,14 +179,25 @@ g4mp2.G4MP2(charge={charge}, mult={mult})""".format(charge=self.charge, mult=rep
         summary = "".join(extracted)
         print(summary)
 
-        jsfile = deckfile[:-3] + ".js"
-        records = {"summary" : summary, "multiplicity" : self.multiplicity,
-                   "nproc" : self.nproc, "memory" : self.memory,
-                   "geofile" : self.geofile, "model" : self.model,
-                   "charge" : self.charge, "elapsed" : elapsed}
+        #Job ran to expected completion
+        if summary:
+            jsfile = deckfile[:-3] + ".js"
+            records = {"summary" : summary, "multiplicity" : self.multiplicity,
+                       "nproc" : self.nproc, "memory" : self.memory,
+                       "geofile" : self.geofile, "model" : self.model,
+                       "charge" : self.charge, "elapsed" : elapsed}
         
-        with open(jsfile, "w") as jshandle:
-            json.dump(records, jshandle, sort_keys=True, indent=2)
+            with open(jsfile, "w") as jshandle:
+                json.dump(records, jshandle, sort_keys=True, indent=2)
+
+        #Otherwise...
+        else:
+            logdata = "".join(log)
+            errors = {"no. of electrons and multiplicity not compatible" :
+                      "The multiplicity appears to be incorrect for the given system and charge."}
+            for k, v in sorted(errors.items()):
+                if k in logdata:
+                    sys.stderr.write(v + "\n")
 
     def get_memory(self):
         """Automatically get available memory (Linux only)
