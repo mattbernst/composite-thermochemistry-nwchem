@@ -359,7 +359,7 @@ def csvmain(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="Treat a chemical system with one of the following composite thermochemical models: " + ", ".join(Runner.models) + ". An .xyz file or appropriate .csv file is required as input.")
     parser.add_argument("-n", "--nproc", help="Number of processor cores to use (auto-assigned if not chosen)", type=int,default=0)
-    parser.add_argument("--memory", help="Maximum memory to use, in megabytes (auto-assigned if not chosen)", default=0)
+    parser.add_argument("--memory", help="Maximum memory to use, in megabytes (auto-assigned if not chosen)", type=int, default=0)
     parser.add_argument("--multiplicity", help="System spin multiplicity", default="singlet")
     parser.add_argument("-m", "--model", help="Thermochemical model to use", default="g3mp2-ccsdt")
     parser.add_argument("-c", "--charge", help="System charge", type=int, default=0)

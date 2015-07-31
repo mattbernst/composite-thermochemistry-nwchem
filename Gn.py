@@ -798,6 +798,7 @@ class G4_mp2(object):
 
         self.initialize_atoms_list()
         self.send_nwchem_cmd("driver; maxiter 999; xyz {0}; end".format(self.geohash))
+        self.send_nwchem_cmd("scf; maxiter 999; end")
 
         # optimize the geometry, ignore energy and gradient results
         if self.is_atom():
