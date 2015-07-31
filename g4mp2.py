@@ -698,6 +698,14 @@ def build_SCF_cmd ():
 
 #_______________________________________________________
 
+def limits_high():
+    """Increase iterations allowed for geometry optimization and electronic
+    convergence.
+    """
+
+    send_nwchem_cmd("scf; maxiter 999; end")
+    send_nwchem_cmd("driver; maxiter 999; end")
+
 def optimize():
 # 1 optimize  B3LYP/6-31G(2df,p)
 
@@ -705,6 +713,7 @@ def optimize():
     global Multiplicity
 
     say('optimize.')
+    limits_high()
 
     send_nwchem_cmd("basis noprint ; * library 6-31G(2df,p) ; end")
 
@@ -849,7 +858,6 @@ def E_mp2 ():
     send_nwchem_cmd("unset basis:*")
     send_nwchem_cmd("basis noprint ; * library 6-31G* ; end")
 
-    send_nwchem_cmd("unset scf:*")
     scfcmd = build_SCF_cmd()
     send_nwchem_cmd(scfcmd)
 

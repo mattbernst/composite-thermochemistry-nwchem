@@ -189,6 +189,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
          -For bad multiplicity, try neutral ammonia, triplet
          -For geometry optimization failure, try +4 ammonia, triplet
           (it is surprisingly hard to make geometry optimization fail)
+         -For symmetry failure, try g3mp2-ccsdt h2 (with NWChem < r27285)
         """
 
         log_location = jobdata["log_location"]
@@ -244,7 +245,6 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
 
         #Job failed somehow
         else:
-            cause_detected = False
             logdata = "".join(log)
             errors = {"no. of electrons and multiplicity not compatible" :
                       "The multiplicity appears to be incorrect for the given system and charge.",
@@ -272,6 +272,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
 
             if not cause:
                 sys.stderr.write("Unknown error. See details in {}\n".format(log_location))
+                cause = "unknown"
 
             return cause
 
@@ -381,4 +382,3 @@ if __name__ == "__main__":
 
     elif args.csv:
         csvmain(args)
-

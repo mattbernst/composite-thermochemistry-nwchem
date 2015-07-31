@@ -871,6 +871,8 @@ def HF_optimize():
        HF/6-31G(d) optimization
     '''
     say('optimize.')
+
+    limits_high()
     send_nwchem_cmd("basis noprint ; * library 6-31G* ; end")
     scfcmd = build_SCF_cmd()
     send_nwchem_cmd(scfcmd)
