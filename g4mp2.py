@@ -703,7 +703,7 @@ def limits_high():
     convergence.
     """
 
-    send_nwchem_cmd("scf; maxiter 999; end")
+    #send_nwchem_cmd("scf; maxiter 999; end")
     send_nwchem_cmd("driver; maxiter 999; end")
 
 def optimize():

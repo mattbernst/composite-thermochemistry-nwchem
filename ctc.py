@@ -10,6 +10,29 @@ import json
 import time
 import csv
 import pprint
+import fcntl
+
+def _make_fd_blocking(file_obj):
+    """
+    Updates the flags of the file descriptor to make it blocking.
+    file_obj is a `file` object, which has a `.fileno()` method.
+    """
+    
+    fd = file_obj.fileno()
+    flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+    if flags & os.O_NONBLOCK:
+        fcntl.fcntl(fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
+
+def make_stdio_blocking():
+    """
+    Makes stdout and stderr blocking.
+    This prevents resource contention issues with subprocesses.
+    See https://github.com/cobrateam/splinter/issues/257
+    (This is needed to prevent IOErrors under OS X)
+    """
+
+    _make_fd_blocking(sys.__stderr__)
+    _make_fd_blocking(sys.__stdout__)
 
 tpl = """start {startname}
 
@@ -179,6 +202,8 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
 
         else:
             os.system(runner)
+
+        make_stdio_blocking()
 
     def run_and_extract(self, jobdata):
         """Run calculation job and handle logged output, including helpful
