@@ -382,7 +382,8 @@ def csvmain(args):
         pprint.pprint(failures)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="Treat a chemical system with one of the following composite thermochemical models: " + ", ".join(Runner.models) + ". An .xyz file or appropriate .csv file is required as input.")
+    available_models = ", ".join(Runner.models)
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="Treat a chemical system with one of the following composite thermochemical models: " + available_models + ". An .xyz file or appropriate .csv file is required as input.")
     parser.add_argument("-n", "--nproc", help="Number of processor cores to use (auto-assigned if not chosen)", type=int,default=0)
     parser.add_argument("--memory", help="Maximum memory to use, in megabytes (auto-assigned if not chosen)", type=int, default=0)
     parser.add_argument("--multiplicity", help="System spin multiplicity", default="singlet")
@@ -395,6 +396,10 @@ if __name__ == "__main__":
     parser.add_argument("--force", help="If active, re-run a calculation even when output file already exists", action="store_true", default=False)
     parser.add_argument("--tmpdir", help="Temporary directory", default="/tmp/")
     args = parser.parse_args()
+
+    if args.model not in Runner.models:
+        sys.stderr.write("Unknown model. Available models are: {}\n".format(available_models))
+        sys.exit(1)
     
     if not (args.xyz or args.csv):
         parser.print_help()
