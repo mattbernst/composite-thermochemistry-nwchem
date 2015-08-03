@@ -688,6 +688,11 @@ class G4_mp2(object):
 
         xyzs = glob.glob(self.geohash + "*.xyz")
         xyzs.sort()
+
+        #handle atomic calculations that have no geometry optimization step
+        if not xyzs:
+            return
+            
         geofile = xyzs[-1]
 
         #TODO: use Abelian symmetries instead of c1
