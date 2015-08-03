@@ -1134,7 +1134,8 @@ def HLC_generic(A=0.009170, B=0.004455, C=0.009155, D=0.001947):
     '''calculate High Level Correction term
         from alpha and beta VALENCE electron count.
     '''
-
+    global Ehlc
+    
     say('HLC.')
 
     nClosed = nwchem.rtdb_get("scf:nclosed")
