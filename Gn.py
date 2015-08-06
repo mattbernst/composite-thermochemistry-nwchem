@@ -688,11 +688,6 @@ class G4_mp2(object):
 
         xyzs = glob.glob(self.geohash + "*.xyz")
         xyzs.sort()
-
-        #handle atomic calculations that have no geometry optimization step
-        if not xyzs:
-            return
-            
         geofile = xyzs[-1]
 
         #TODO: use Abelian symmetries instead of c1
@@ -747,11 +742,12 @@ class G4_mp2(object):
         elif output:
             t = "{context}; vectors input atomic output {large}.movecs; end"
             vectors = t.format(context=context, large=sn_output)
+        #no vector projection or storage; just wanted to set a different basis
         else:
-            self.say("MUST SUPPLY AT LEAST ONE OF input, output for basis_prepare")
-            sys.exit(1)
+            vectors = ""
 
-        self.send_nwchem_cmd(vectors)
+        if vectors:
+            self.send_nwchem_cmd(vectors)
 
 
     def prepare_scf_vectors(self):
@@ -803,7 +799,7 @@ class G4_mp2(object):
 
         self.initialize_atoms_list()
         self.send_nwchem_cmd("driver; maxiter 999; xyz {0}; end".format(self.geohash))
-        self.send_nwchem_cmd("scf; maxiter 999; end")
+        #self.send_nwchem_cmd("scf; maxiter 999; end")
 
         # optimize the geometry, ignore energy and gradient results
         if self.is_atom():
@@ -970,7 +966,6 @@ class G4_mp2(object):
         """
 
         self.basis_prepare(self.correlated_basis[1][0],
-                           input=self.correlated_basis[1][0],
                            coordinates=self.correlated_basis[1][1])
 
         self.send_nwchem_cmd("unset mp2:*")
