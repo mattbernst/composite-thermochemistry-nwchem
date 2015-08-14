@@ -20,41 +20,7 @@ T298            = 298.15
 
 kT_298_perMol   = (Boltzmann * T298 * Avogadro) / JoulePerKcal / kCalPerHartree
 
-class G4_mp2(object):
-    """
-     G4(MP2) composite method for Python under NWChem 6.5
-     Implementation by Matt B. Ernst and Daniel R. Haney
-     7/18/2015
-
-     Gaussian-4 theory using reduced order perturbation theory
-     Larry A. Curtiss,Paul C. Redfern,Krishnan Raghavachari
-     THE JOURNAL OF CHEMICAL PHYSICS 127, 124105 2007
-
-
-     1 optimize     @ B3LYP/6-31G(2df,p)
-     2 Ezpe         = zpe at B3LYP/6-31G(2df,p)
-     3 E(MP2)       = MP2(fc)/6-31G(d)
-
-     4 E(ccsd(t))   = CCSD(fc,T)/6-31G(d)
-     5 E(HF/G3LXP)  = HF/G3LargeXP
-     6 E(G3LargeXP) = MP2(fc)/G3LargeXP
-
-     7 E(HF1)       = HF/g4mp2-aug-cc-pVTZ
-     8 E(HF2)       = HF/g4mp2-aug-cc-pVQZ
-       E(HFlimit)   = extrapolated HF limit, =CBS
-
-       delta(HF)    = E(HFlimit) - E(HF/G3LargeXP)
-       E(SO)        = spin orbit energy
-       Ehlc         = High Level Correction
-
-       E(G4(MP2)) = E(CCSD(T)) +
-                    E(G3LargeXP) - E(MP2) +
-                    Delta(HFlimit) +
-                    E(SO) +
-                    E(HLC) +
-                    Ezpe * scale_factor
-    """
-
+class Gn_common(object):
     def __init__(self, charge=0, multiplicity="singlet", tracing=False,
                  debug=False, integral_memory_cache=3500000000,
                  integral_disk_cache=0):
@@ -71,44 +37,11 @@ class G4_mp2(object):
         else:
             self.hftype = "rhf"
 
-        self.correlated_basis = [("6-31G*", "cartesian"),
-                                 ("g3mp2largexp", "spherical")]
-        self.cbs_basis = [("g4mp2-aug-cc-pvtz", "spherical"),
-                          ("g4mp2-aug-cc-pvqz", "spherical")]
-
         self.tracing = tracing
         self.debug_flag = debug
 
-        #Zero Point Energy scale factor for B3LYP/6-31G(2df,p)
-        self.ZPEScaleFactor = 0.9854    # Curtiss scale factor for Gaussian 09
-        #self.ZPEScaleFactor = 0.9798     # Truhlar scale Factor for NWChem 6.5
-
-        self.atoms = []
-
-        self.Ezpe        = 0.0
-        self.Emp2        = 0.0
-        self.Eccsdt      = 0.0
-        self.Ehfg3lxp    = 0.0
-        self.Emp2g3lxp   = 0.0
-        self.Ehf1        = 0.0
-        self.Ehf2        = 0.0
-        self.Ecbs        = 0.0
-        self.Ehlc        = 0.0
-        self.Ethermal    = 0.0
-        self.Hthermal    = 0.0
-        self.E0          = 0.0
-        self.E298        = 0.0
-        self.H298        = 0.0
-
-        self.dhf0        = 0.0
-        self.dhf298      = 0.0
-
-        # valence electron variables
-        self.nAlpha      = 0
-        self.nBeta       = 0
-        self.nFrozen     = 0
-
         self.geohash = self.geometry_hash()
+        self.atoms = []
 
     def say(self, s):
         """Write to stderr console. No implicit newline "\n".
@@ -152,29 +85,6 @@ class G4_mp2(object):
         if self.debug_flag:
             self.say("DEBUG: {0}\n".format(s))
 
-    def initialize_atoms_list(self):
-        """Use NWChem's RTDB geometry to initialize self.atoms,
-        e.g. CH3OH gives ['C','H','H','H','O''H']
-        """
-
-        # rtdb_get() returns a string if only one atom
-        #       or a list of atoms (i.e., tags).
-        # Absent type handling,
-        # len('CU') is the same as len(['C','U'])
-        tags = nwchem.rtdb_get("geometry:geometry:tags")
-        if type(tags) == str:
-            self.atoms.append(tags)
-            self.debug('AtomsList: %s\n' % tags)
-        else:
-            self.atoms.extend(tags)
-            if self.debug_flag:
-                atmstr=''
-                for atm in tags:
-                    atmstr += ' '+atm
-                self.debug('AtomsList: %s\n' % atmstr)
-
-        self.debug('NumAtoms={0}\n'.format(len(self.atoms)))
-
     def geometry_hash(self):
         """Produce a hashed geometry identifier from the geometry in the
         RTDB. This is useful to generate file names for writing and reading
@@ -217,57 +127,6 @@ class G4_mp2(object):
         """
 
         return len(self.atoms) == 1
-
-
-    def report_summary(self):
-        """Report results in GAMESS G3(MP2) output format for easy comparison.
-        """
-
-        Szpe = self.Ezpe * self.ZPEScaleFactor
-        dMP2 = self.Emp2g3lxp - self.Emp2
-        dHF  = self.Ecbs - self.Ehfg3lxp
-
-        summary = [
-            ("\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NWChem6.5"),
-            ("                  SUMMARY OF G4(MP2) CALCULATIONS"),
-            ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"),
-            ("    B3LYP/6-31G(2df,p)= % 12.6f   HF/maug-cc-p(T+d)Z= % 12.6f" % (self.Eb3lyp, self.Ehf1)),
-            ("    HF/CBS            = % 12.6f   HF/maug-cc-p(Q+d)Z= % 12.6f" % (self.Ecbs, self.Ehf2)),
-            ("    MP2/6-31G(d)      = % 12.6f   CCSD(T)/6-31G(d)  = % 12.6f" % (self.Emp2, self.Eccsdt)),
-            ("    HF/G3MP2LARGEXP   = % 12.6f   MP2/G3MP2LARGEXP  = % 12.6f" % (self.Ehfg3lxp, self.Emp2g3lxp)),
-            ("    DE(MP2)           = % 12.6f   DE(HF)            = % 12.6f" % (dMP2, dHF)),
-            ("    ZPE(B3LYP)        = % 12.6f   ZPE SCALE FACTOR  = % 12.6f" % (Szpe, self.ZPEScaleFactor)),
-            ("    HLC               = % 12.6f   FREE ENERGY       = % 12.6f" % (self.Ehlc, 0.0)),
-            ("    THERMAL ENERGY    = % 12.6f   THERMAL ENTHALPY  = % 12.6f" % (self.Ethermal, self.Hthermal)),
-            ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"),
-            ("    E(G4(MP2)) @ 0K   = % 12.6f   E(G4(MP2)) @298K  = % 12.6f" % (self.E0, self.E298)),
-            ("    H(G4(MP2))        = % 12.6f   G(G4(MP2))        = % 12.6f" % (self.H298, 0.0)),
-            ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"),
-        ]
-
-        for line in summary:
-            self.report(line)
-
-    def report_dHf(self):
-        """Report change in heat of formation going from 0 K to 298 K.
-        """
-
-        heatsOfFormation = [
-        #("\n"),
-        ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"),
-        ("          HEAT OF FORMATION   (0K): % 10.2f kCal/mol" % self.dhf0),
-        ("          HEAT OF FORMATION (298K): % 10.2f kCal/mol" % self.dhf298),
-        ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        ]
-
-  
-        for line in heatsOfFormation:
-            self.report(line)
-
-    def report_all(self):
-        self.report_summary ()
-        self.report_dHf ()
-
 
     def send_nwchem_cmd(self, s):
         """Send a command to be parsed as NWChem job input language.
@@ -348,6 +207,232 @@ class G4_mp2(object):
         """
 
         return self.symbol_number(s) or self.element_number(s)
+
+    def basis_prepare(self, basis, input="", output="",
+                      coordinates="spherical", context="scf"):
+        """Set up commands to store vectors to a file and/or project or
+        load stored vectors for use as initial guess. Also handles
+        switching between basis sets.
+
+        :param basis: name of current basis set
+        :type basis :str
+        :param input: optional name of basis set for vector input
+        :type input : str
+        :param output: optional name of basis set for vector output
+        :type output : str
+        :param coordinates: "cartesian" or "spherical", for current basis
+        :type coordinates : str
+        :param context: "scf" or "dft" vectors setup context
+        :type context : str
+        """
+
+        def simplename(basis_name):
+            name = basis_name[:]
+            t = {"-" : "_", "*" : "star", "+" : "plus",
+                 "(" : "", ")" : "", "," : "_"}
+            for key, value in t.items():
+                name = name.replace(key, value)
+
+            return name
+
+        sn = simplename(basis)
+        sn_input = simplename(input)
+        sn_output = simplename(output)
+        basis_cmd = "basis {0} {1} ; * library {2} ; end".format(sn, coordinates, basis)
+        self.send_nwchem_cmd(basis_cmd)
+        self.send_nwchem_cmd('set "ao basis" {0}'.format(sn))
+
+        if input and output:
+            t = "{context}; vectors input project {small} {small}.movecs output {large}.movecs; end"
+            vectors = t.format(context=context, small=sn_input, large=sn_output)
+        elif input:
+            t = "{context}; vectors input {small}.movecs; end"
+            vectors = t.format(context=context, small=sn_input)
+        elif output:
+            t = "{context}; vectors input atomic output {large}.movecs; end"
+            vectors = t.format(context=context, large=sn_output)
+        #no vector projection or storage; just wanted to set a different basis
+        else:
+            vectors = ""
+
+        if vectors:
+            self.send_nwchem_cmd(vectors)
+
+    def initialize_atoms_list(self):
+        """Use NWChem's RTDB geometry to initialize self.atoms,
+        e.g. CH3OH gives ['C','H','H','H','O''H']
+        """
+
+        # rtdb_get() returns a string if only one atom
+        #       or a list of atoms (i.e., tags).
+        # Absent type handling,
+        # len('CU') is the same as len(['C','U'])
+        tags = nwchem.rtdb_get("geometry:geometry:tags")
+        if type(tags) == str:
+            self.atoms.append(tags)
+            self.debug('AtomsList: %s\n' % tags)
+        else:
+            self.atoms.extend(tags)
+            if self.debug_flag:
+                atmstr=''
+                for atm in tags:
+                    atmstr += ' '+atm
+                self.debug('AtomsList: %s\n' % atmstr)
+
+        self.debug('NumAtoms={0}\n'.format(len(self.atoms)))
+
+    def build_SCF_cmd(self):
+        """Prepare SCF block with multiplicity-appropriate choice of
+        HF form.
+
+        :return: SCF control block
+        :rtype : str
+        """
+
+        memory_cache_words = self.integral_memory_cache / 8
+        disk_cache_words = self.integral_disk_cache / 8
+
+        tpl = "scf ; semidirect memsize {0} filesize {1}; {2} ; {3} ; end"
+        block = tpl.format(memory_cache_words, disk_cache_words,
+                           self.multiplicity, self.hftype)
+        return block
+
+    def reset_symmetry(self):
+        """Reload geometry and force symmetry down if TCE must be used.
+        """
+
+        xyzs = glob.glob(self.geohash + "*.xyz")
+        xyzs.sort()
+        geofile = xyzs[-1]
+
+        #TODO: use Abelian symmetries instead of c1
+        if self.multiplicity != "singlet":
+            symmetry_block = "symmetry c1;"
+        else:
+            symmetry_block = ""
+
+        geoblock = "geometry units angstroms print xyz; {0} load {1}; end"
+        self.send_nwchem_cmd(geoblock.format(symmetry_block, geofile))
+
+
+class G4_mp2(Gn_common):
+    """
+     G4(MP2) composite method for Python under NWChem 6.5
+     Implementation by Matt B. Ernst and Daniel R. Haney
+     7/18/2015
+
+     Gaussian-4 theory using reduced order perturbation theory
+     Larry A. Curtiss,Paul C. Redfern,Krishnan Raghavachari
+     THE JOURNAL OF CHEMICAL PHYSICS 127, 124105 2007
+
+
+     1 optimize     @ B3LYP/6-31G(2df,p)
+     2 Ezpe         = zpe at B3LYP/6-31G(2df,p)
+     3 E(MP2)       = MP2(fc)/6-31G(d)
+
+     4 E(ccsd(t))   = CCSD(fc,T)/6-31G(d)
+     5 E(HF/G3LXP)  = HF/G3LargeXP
+     6 E(G3LargeXP) = MP2(fc)/G3LargeXP
+
+     7 E(HF1)       = HF/g4mp2-aug-cc-pVTZ
+     8 E(HF2)       = HF/g4mp2-aug-cc-pVQZ
+       E(HFlimit)   = extrapolated HF limit, =CBS
+
+       delta(HF)    = E(HFlimit) - E(HF/G3LargeXP)
+       E(SO)        = spin orbit energy
+       Ehlc         = High Level Correction
+
+       E(G4(MP2)) = E(CCSD(T)) +
+                    E(G3LargeXP) - E(MP2) +
+                    Delta(HFlimit) +
+                    E(SO) +
+                    E(HLC) +
+                    Ezpe * scale_factor
+    """
+
+    def __init__(self, *args, **kw):
+        super(G4_mp2, self).__init__(*args, **kw)
+
+        self.correlated_basis = [("6-31G*", "cartesian"),
+                                 ("g3mp2largexp", "spherical")]
+        self.cbs_basis = [("g4mp2-aug-cc-pvtz", "spherical"),
+                          ("g4mp2-aug-cc-pvqz", "spherical")]
+
+        #Zero Point Energy scale factor for B3LYP/6-31G(2df,p)
+        self.ZPEScaleFactor = 0.9854    # Curtiss scale factor for Gaussian 09
+        #self.ZPEScaleFactor = 0.9798     # Truhlar scale Factor for NWChem 6.5
+
+        self.Ezpe        = 0.0
+        self.Emp2        = 0.0
+        self.Eccsdt      = 0.0
+        self.Ehfg3lxp    = 0.0
+        self.Emp2g3lxp   = 0.0
+        self.Ehf1        = 0.0
+        self.Ehf2        = 0.0
+        self.Ecbs        = 0.0
+        self.Ehlc        = 0.0
+        self.Ethermal    = 0.0
+        self.Hthermal    = 0.0
+        self.E0          = 0.0
+        self.E298        = 0.0
+        self.H298        = 0.0
+
+        self.dhf0        = 0.0
+        self.dhf298      = 0.0
+
+        # valence electron variables
+        self.nAlpha      = 0
+        self.nBeta       = 0
+        self.nFrozen     = 0
+
+    def report_summary(self):
+        """Report results in GAMESS G3(MP2) output format for easy comparison.
+        """
+
+        Szpe = self.Ezpe * self.ZPEScaleFactor
+        dMP2 = self.Emp2g3lxp - self.Emp2
+        dHF  = self.Ecbs - self.Ehfg3lxp
+
+        summary = [
+            ("\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NWChem6.5"),
+            ("                  SUMMARY OF G4(MP2) CALCULATIONS"),
+            ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"),
+            ("    B3LYP/6-31G(2df,p)= % 12.6f   HF/maug-cc-p(T+d)Z= % 12.6f" % (self.Eb3lyp, self.Ehf1)),
+            ("    HF/CBS            = % 12.6f   HF/maug-cc-p(Q+d)Z= % 12.6f" % (self.Ecbs, self.Ehf2)),
+            ("    MP2/6-31G(d)      = % 12.6f   CCSD(T)/6-31G(d)  = % 12.6f" % (self.Emp2, self.Eccsdt)),
+            ("    HF/G3MP2LARGEXP   = % 12.6f   MP2/G3MP2LARGEXP  = % 12.6f" % (self.Ehfg3lxp, self.Emp2g3lxp)),
+            ("    DE(MP2)           = % 12.6f   DE(HF)            = % 12.6f" % (dMP2, dHF)),
+            ("    ZPE(B3LYP)        = % 12.6f   ZPE SCALE FACTOR  = % 12.6f" % (Szpe, self.ZPEScaleFactor)),
+            ("    HLC               = % 12.6f   FREE ENERGY       = % 12.6f" % (self.Ehlc, 0.0)),
+            ("    THERMAL ENERGY    = % 12.6f   THERMAL ENTHALPY  = % 12.6f" % (self.Ethermal, self.Hthermal)),
+            ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"),
+            ("    E(G4(MP2)) @ 0K   = % 12.6f   E(G4(MP2)) @298K  = % 12.6f" % (self.E0, self.E298)),
+            ("    H(G4(MP2))        = % 12.6f   G(G4(MP2))        = % 12.6f" % (self.H298, 0.0)),
+            ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"),
+        ]
+
+        for line in summary:
+            self.report(line)
+
+    def report_dHf(self):
+        """Report change in heat of formation going from 0 K to 298 K.
+        """
+
+        heatsOfFormation = [
+        #("\n"),
+        ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"),
+        ("          HEAT OF FORMATION   (0K): % 10.2f kCal/mol" % self.dhf0),
+        ("          HEAT OF FORMATION (298K): % 10.2f kCal/mol" % self.dhf298),
+        ("    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        ]
+
+  
+        for line in heatsOfFormation:
+            self.report(line)
+
+    def report_all(self):
+        self.report_summary ()
+        self.report_dHf ()
 
     def atom_core_orbitals(self, atomicNumber, convention="gamess"):
         """This replicates the core electron pair lookup table in
@@ -584,22 +669,6 @@ class G4_mp2(object):
 
         return False
 
-    def build_SCF_cmd(self):
-        """Prepare SCF block with multiplicity-appropriate choice of
-        HF form.
-
-        :return: SCF control block
-        :rtype : str
-        """
-
-        memory_cache_words = self.integral_memory_cache / 8
-        disk_cache_words = self.integral_disk_cache / 8
-
-        tpl = "scf ; semidirect memsize {0} filesize {1}; {2} ; {3} ; end"
-        block = tpl.format(memory_cache_words, disk_cache_words,
-                           self.multiplicity, self.hftype)
-        return block
-
     def E_spin_orbit(self, atomic_number, charge):
         """EspinOrbit tabulates the spin orbit energies
         of atomic species in the first three rows as listed in
@@ -680,75 +749,6 @@ class G4_mp2(object):
         milliHa_to_Ha = 0.001
         espin = ESpinOrbit[atomic_number][ion] * milliHa_to_Ha
         return espin
-
-
-    def reset_symmetry(self):
-        """Reload geometry and force symmetry down if TCE must be used.
-        """
-
-        xyzs = glob.glob(self.geohash + "*.xyz")
-        xyzs.sort()
-        geofile = xyzs[-1]
-
-        #TODO: use Abelian symmetries instead of c1
-        if self.multiplicity != "singlet":
-            symmetry_block = "symmetry c1;"
-        else:
-            symmetry_block = ""
-
-        geoblock = "geometry units angstroms print xyz; {0} load {1}; end"
-        self.send_nwchem_cmd(geoblock.format(symmetry_block, geofile))
-
-    def basis_prepare(self, basis, input="", output="",
-                      coordinates="spherical", context="scf"):
-        """Set up commands to store vectors to a file and/or project or
-        load stored vectors for use as initial guess. Also handles
-        switching between basis sets.
-
-        :param basis: name of current basis set
-        :type basis :str
-        :param input: optional name of basis set for vector input
-        :type input : str
-        :param output: optional name of basis set for vector output
-        :type output : str
-        :param coordinates: "cartesian" or "spherical", for current basis
-        :type coordinates : str
-        :param context: "scf" or "dft" vectors setup context
-        :type context : str
-        """
-
-        def simplename(basis_name):
-            name = basis_name[:]
-            t = {"-" : "_", "*" : "star", "+" : "plus",
-                 "(" : "", ")" : "", "," : "_"}
-            for key, value in t.items():
-                name = name.replace(key, value)
-
-            return name
-
-        sn = simplename(basis)
-        sn_input = simplename(input)
-        sn_output = simplename(output)
-        basis_cmd = "basis {0} {1} ; * library {2} ; end".format(sn, coordinates, basis)
-        self.send_nwchem_cmd(basis_cmd)
-        self.send_nwchem_cmd('set "ao basis" {0}'.format(sn))
-
-        if input and output:
-            t = "{context}; vectors input project {small} {small}.movecs output {large}.movecs; end"
-            vectors = t.format(context=context, small=sn_input, large=sn_output)
-        elif input:
-            t = "{context}; vectors input {small}.movecs; end"
-            vectors = t.format(context=context, small=sn_input)
-        elif output:
-            t = "{context}; vectors input atomic output {large}.movecs; end"
-            vectors = t.format(context=context, large=sn_output)
-        #no vector projection or storage; just wanted to set a different basis
-        else:
-            vectors = ""
-
-        if vectors:
-            self.send_nwchem_cmd(vectors)
-
 
     def prepare_scf_vectors(self):
         """Set up converged scf vectors before first correlated steps so they
