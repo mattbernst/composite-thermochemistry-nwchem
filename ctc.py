@@ -55,7 +55,8 @@ task python
 """
 
 class Runner(object):
-    models = ["g3mp2-ccsdt", "g3mp2-qcisdt", "g4mp2", "gn-g4mp2"]
+    models = ["g3mp2-ccsdt", "g3mp2-qcisdt", "g4mp2", "gn-g3mp2-ccsdt",
+              "gn-g3mp2-qcisdt", "gn-g4mp2"]
     def __init__(self, model, geofile, charge, multiplicity, nproc, memory,
                  tmpdir, verbose, noclean, force):
         self.model = model
@@ -135,8 +136,22 @@ g4mp2.G4MP2(charge={charge}, mult={mult})""".format(charge=self.charge, mult=rep
             m = """import Gn
 model=Gn.G4_mp2(charge={charge}, multiplicity={mult}, integral_memory_cache={cache})
 model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=integral_cache)
-            if self.multiplicity != "singlet":
-                symmetry = "symmetry c1"
+
+        #G3 (MP2) CCSD(T), alternative implementation
+        elif self.model == "gn-g3mp2-ccsdt":
+            integral_cache = int(memory_per_core * 2 ** 20 * 0.4)
+            pymodel = "Gn.py"
+            m = """import Gn
+model=Gn.G3_mp2(charge={charge}, multiplicity={mult}, integral_memory_cache={cache})
+model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=integral_cache)
+
+        #G3 (MP2) QCISD(T), alternative implementation
+        elif self.model == "gn-g3mp2-qcisdt":
+            integral_cache = int(memory_per_core * 2 ** 20 * 0.4)
+            pymodel = "Gn.py"
+            m = """import Gn
+model=Gn.G3_mp2(charge={charge}, multiplicity={mult}, integral_memory_cache={cache}, use_qcisdt=True)
+model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=integral_cache)
 
         deck = tpl.format(startname=startname, memory=memory_per_core,
                           jobname=jobname,
