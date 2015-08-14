@@ -25,10 +25,11 @@ kT_298_perMol   = (Boltzmann * T298 * Avogadro) / JoulePerKcal / kCalPerHartree
 class Gn_common(object):
     def __init__(self, charge=0, multiplicity="singlet", tracing=False,
                  debug=False, integral_memory_cache=3500000000,
-                 integral_disk_cache=0):
+                 integral_disk_cache=0, force_c1_symmetry=False):
 
         self.dhf298      = 0.0
         self.dhf0        = 0.0
+        self.force_c1_symmetry = force_c1_symmetry
         multiplets  = ["(null)", "singlet", "doublet", "triplet", "quartet",
                        "quintet", "hextet","septet", "octet"]
         self.integral_memory_cache = integral_memory_cache
@@ -366,6 +367,9 @@ class Gn_common(object):
     def reset_symmetry(self):
         """Reload geometry and force symmetry down if TCE must be used.
         """
+
+        if self.force_c1_symmetry:
+            return
 
         xyzs = glob.glob(self.geohash + "*.xyz")
         xyzs.sort()

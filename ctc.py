@@ -134,24 +134,24 @@ g4mp2.G4MP2(charge={charge}, mult={mult})""".format(charge=self.charge, mult=rep
             integral_cache = int(memory_per_core * 2 ** 20 * 0.4)
             pymodel = "Gn.py"
             m = """import Gn
-model=Gn.G4_mp2(charge={charge}, multiplicity={mult}, integral_memory_cache={cache})
-model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=integral_cache)
+model=Gn.G4_mp2(charge={charge}, multiplicity={mult}, integral_memory_cache={cache}, force_c1_symmetry={force})
+model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=integral_cache, force=force_c1_symmetry)
 
         #G3 (MP2) CCSD(T), alternative implementation
         elif self.model == "gn-g3mp2-ccsdt":
             integral_cache = int(memory_per_core * 2 ** 20 * 0.4)
             pymodel = "Gn.py"
             m = """import Gn
-model=Gn.G3_mp2(charge={charge}, multiplicity={mult}, integral_memory_cache={cache})
-model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=integral_cache)
+model=Gn.G3_mp2(charge={charge}, multiplicity={mult}, integral_memory_cache={cache}, force_c1_symmetry={force})
+model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=integral_cache, force=force_c1_symmetry)
 
         #G3 (MP2) QCISD(T), alternative implementation
         elif self.model == "gn-g3mp2-qcisdt":
             integral_cache = int(memory_per_core * 2 ** 20 * 0.4)
             pymodel = "Gn.py"
             m = """import Gn
-model=Gn.G3_mp2(charge={charge}, multiplicity={mult}, integral_memory_cache={cache}, use_qcisdt=True)
-model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=integral_cache)
+model=Gn.G3_mp2(charge={charge}, multiplicity={mult}, integral_memory_cache={cache}, use_qcisdt=True, force_c1_symmetry={force})
+model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=integral_cache, force=force_c1_symmetry)
 
         deck = tpl.format(startname=startname, memory=memory_per_core,
                           jobname=jobname,
