@@ -17,6 +17,8 @@ Boltzmann       = 1.3806488E-23
 Avogadro        = 6.02214129E+23
 JoulePerKcal    = 4.184E+03
 T298            = 298.15
+AUKCAL = kCalPerHartree
+Rgas = 1.9872041 / 1000.0 / AUKCAL     # atomic units
 
 kT_298_perMol   = (Boltzmann * T298 * Avogadro) / JoulePerKcal / kCalPerHartree
 
@@ -24,6 +26,7 @@ class Gn_common(object):
     def __init__(self, charge=0, multiplicity="singlet", tracing=False,
                  debug=False, integral_memory_cache=3500000000,
                  integral_disk_cache=0):
+
         self.dhf298      = 0.0
         self.dhf0        = 0.0
         multiplets  = ["(null)", "singlet", "doublet", "triplet", "quartet",
@@ -86,6 +89,67 @@ class Gn_common(object):
 
         if self.debug_flag:
             self.say("DEBUG: {0}\n".format(s))
+
+    def vib_thermo(self, vibs):
+        """Handroll the ZPE because NWChem's zpe accumulates
+        truncation error from 3 sigfig physical constants.
+        """
+
+        AUKCAL  = 627.5093314
+        c       = 2.99792458E+10
+        h       = 6.62606957E-27
+        kgas    = 1.3806488E-16     # cgs units
+        Rgas    = 1.9872041/1000.0/AUKCAL     # atomic units
+
+        temperature = 298.15
+
+        vibsum = 0.0
+        for freq in vibs:
+            if (freq > 0.1):
+                vibsum += freq
+
+        cm2Ha = 219474.6    # cm-1 to Hartree conversion
+        self.Ezpe = vibsum / (2.0 * cm2Ha)
+
+        # shamelessly swipe code from NWCHEM/src/vib_wrtFreq.F
+        eth = 0.0
+        hth = 0.0
+        xdum = 0.0
+
+        for freq in vibs:
+            if (freq > 0.1):
+                thetav = freq * (h * c / kgas)    #freqency temperature in Kelvin from cm-1
+                if (temperature > 0.0):
+                    xdum   = math.exp(-thetav/temperature)
+                else:
+                    xdum = 0.0
+
+                xdum = xdum / (1.0 - xdum)
+                eth = eth + thetav * (0.5 + xdum)
+
+        eth = eth * Rgas
+
+        # linear boolean is available only after task_freq('scf') runs
+        # NWChem only writes the flag if molecule is linear
+        try:
+            is_linear = nwchem.rtdb_get("vib:linear")
+        except:
+            is_linear = False
+
+        if (is_linear):
+            # translational(3/2RT) and rotation(2/2RT) thermal corrections
+            eth = eth + 2.5 * Rgas * temperature
+        else:
+            # translational(3/2RT) and rotation(3/2RT) thermal corrections
+            eth = eth + 3.0 * Rgas * temperature
+
+        # Hthermal = eth+pV=eth+RT, since pV=RT
+        hth = eth + Rgas * temperature
+        self.debug("Handrolled E,H thermal= %.6f, %.6f\n" % (eth,hth))
+
+        self.Ethermal = eth
+        self.Hthermal = hth
+
 
     def geometry_hash(self):
         """Produce a hashed geometry identifier from the geometry in the
@@ -812,13 +876,7 @@ class G4_mp2(Gn_common):
 
         self.say('ZPE.')
 
-        AUKCAL  = 627.5093314
-        c       = 2.99792458E+10
-        h       = 6.62606957E-27
-        kgas    = 1.3806488E-16     # cgs units
-        Rgas    = 1.9872041/1000.0/AUKCAL     # atomic units
-
-        temperature = 298.15
+        temperature = T298
 
         if self.is_atom():
             self.Ezpe = 0.0
@@ -829,55 +887,7 @@ class G4_mp2(Gn_common):
         # run hessian on equilibrium geometry
         # ignore ZPE, calculate it from vibrations list
         zpe, vibs, intens = nwchem.task_freq("dft")
-
-        # Handroll the ZPE because NWChem's zpe accumulates
-        # truncation error from 3 sigfig physical constants.
-        vibsum = 0.0
-        for freq in vibs:
-            if (freq > 0.1):
-                vibsum += freq
-
-        cm2Ha = 219474.6    # cm-1 to Hartree conversion
-        self.Ezpe    = vibsum / (2.0 * cm2Ha)
-
-        # shamelessly swipe code from NWCHEM/src/vib_wrtFreq.F
-        eth = 0.0
-        hth = 0.0
-        xdum = 0.0
-
-        for freq in vibs:
-            if (freq > 0.1):
-                thetav = freq * (h * c / kgas)    #freqency temperature in Kelvin from cm-1
-                if (temperature > 0.0):
-                    xdum   = math.exp(-thetav/temperature)
-                else:
-                    xdum = 0.0
-
-                xdum = xdum / (1.0 - xdum)
-                eth = eth + thetav * (0.5 + xdum)
-
-        eth = eth * Rgas
-
-        # linear boolean is available only after task_freq('scf') runs
-        # NWChem only writes the flag if molecule is linear
-        try:
-            is_linear = nwchem.rtdb_get("vib:linear")
-        except:
-            is_linear = False
-
-        if (is_linear):
-            # translational(3/2RT) and rotation(2/2RT) thermal corrections
-            eth = eth + 2.5 * Rgas * temperature
-        else:
-            # translational(3/2RT) and rotation(3/2RT) thermal corrections
-            eth = eth + 3.0 * Rgas * temperature
-
-        # Hthermal = eth+pV=eth+RT, since pV=RT
-        hth = eth + Rgas * temperature
-        self.debug("Handrolled E,H thermal= %.6f, %.6f\n" % (eth,hth))
-
-        self.Ethermal = eth
-        self.Hthermal = hth
+        self.vib_thermo(vibs)
 
     def E_mp2(self):
         """Calculate the MP2 energy at the B3LYP-optimized geometry.
@@ -1229,8 +1239,8 @@ class G3_mp2(Gn_common):
         '''
 
         self.say('optimize.')
-        self.send_nwchem_cmd("scf; maxiter 999; end")
-        self.send_nwchem_cmd("driver; maxiter 999; end")
+        self.send_nwchem_cmd("scf; maxiter 99; end")
+        self.send_nwchem_cmd("driver; maxiter 999; xyz {0}; end".format(self.geohash))
 
         self.send_nwchem_cmd("basis noprint ; * library 6-31G* ; end")
         scfcmd = self.build_SCF_cmd()
@@ -1255,14 +1265,6 @@ class G3_mp2(Gn_common):
            give high ZPE values in NWChem @ HF/6-31G*
         '''
 
-        #TODO: fix up the vibrational work as a separate module
-
-        AUKCAL = kCalPerHartree
-        c = 2.99792458E+10
-        h = 6.62606957E-27
-        kgas = 1.3806488E-16     # cgs units
-        Rgas = 1.9872041 / 1000.0 / AUKCAL     # atomic units
-
         temperature = T298
 
         self.say("zpe.")
@@ -1276,64 +1278,7 @@ class G3_mp2(Gn_common):
         # run hessian on equilibrium geometry
         # ignore ZPE, calculate it from vibrations list
         zpe, vibs, intens = nwchem.task_freq("scf")
-
-        # Handroll the ZPE because NWChem's zpe accumulates
-        # truncation error from 3 sigfig physical constants.
-
-        vibsum = 0.0
-        for freq in vibs:
-            if (freq > 0.1):
-                vibsum += freq
-
-        cm2Ha = 219474.6    # cm-1 to Hartree conversion
-        self.Ezpe = vibsum / (2.0 * cm2Ha)
-
-        # get total thermal energy, enthalpy
-        eth = nwchem.rtdb_get("vib:ethermal")
-        hth = nwchem.rtdb_get("vib:hthermal")
-        self.debug("NWChem zpe,E,H thermal= %.6f, %.6f, %.6f\n" % (self.Ezpe,eth, hth))
-
-        eth = 0.0
-        hth = 0.0
-        xdum = 0.0
-
-        for freq in vibs:
-            if (freq > 0.1):
-                # freqency temperature in Kelvin from cm-1
-                thetav = freq * (h * c / kgas)
-                if (temperature > 0.0):
-                    xdum = math.exp(-thetav / temperature)
-                else:
-                    xdum = 0.0
-
-                xdum = xdum / (1.0 - xdum)
-                eth = eth + thetav * (0.5 + xdum)
-
-        # linear boolean is available only after task_freq('scf') runs
-        # NWChem only writes the flag if molecule is linear
-
-        eth = eth * Rgas
-
-        try:
-            is_linear = nwchem.rtdb_get("vib:linear")
-        except:
-            is_linear = False
-
-        if (is_linear and self.highest_correlated == "qcisd(t)"):
-            # translational(3/2RT) and rotation(2/2RT) thermal corrections
-            eth = eth + 2.5 * Rgas * temperature
-        else:
-            # translational(3/2RT) and rotation(3/2RT) thermal corrections
-            eth = eth + 3.0 * Rgas * temperature
-
-        # Hthermal = eth+pV=eth+RT, since pV=RT
-        hth = eth + Rgas * temperature
-        self.debug("RgasT= %.9f, kT_298_perMol= %.9f\n" %
-            (Rgas * temperature, kT_298_perMol))
-        self.debug("Handrolled E,H thermal= %.6f, %.6f\n" % (eth, hth))
-
-        self.Ethermal = eth
-        self.Hthermal = hth
+        self.vib_thermo(vibs)
 
     def MP2_optimize(self):
         '''Optimize geometry at MP2(full)/6-31G(d)
@@ -1707,6 +1652,7 @@ class G3_mp2(Gn_common):
         g3mp2_function = [
             self.HF_optimize,
             self.HF_zpe,
+            self.reset_symmetry,
             self.MP2_optimize,
             self.MP2_frozen,
             self.ccsdt_qcisdt_frozen,
