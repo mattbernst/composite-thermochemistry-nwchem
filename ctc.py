@@ -69,6 +69,7 @@ class Runner(object):
         self.tmpdir = tmpdir
         self.noclean = noclean
         self.force = force
+        self.start_time = time.time()
 
     def get_multiplicity(self, mult):
         """Validate or translate multiplicity.
@@ -247,10 +248,9 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
 
         else:
             rerun = False
-            t0 = time.time()
             self.run(jobdata)
-            elapsed = time.time() - t0
-
+            elapsed = time.time() - self.start_time
+            
         with open(log_location) as lf:
             log = lf.readlines()
 
@@ -302,7 +302,15 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                       "non-Abelian symmetry not permitted" :
                       "Symmetry problems with geometry. Forcing C1.",
                       "AUTOZ failed" :
-                      "Symmetry problems with geometry. Forcing C1."}
+                      "Symmetry problems with geometry. Forcing C1.",
+                      "ran out of MA memory" :
+                      "Memory shortage",
+                      "MA error" :
+                      "Memory shortage",
+                      "dgesv failed" :
+                      "Numerical failure",
+                      "maximum iterations exceeded" :
+                      "Convergence failure"}
 
             cause = ""
             for k, v in sorted(errors.items()):
@@ -311,14 +319,21 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                     cause = v
 
             #Sometimes autosym fails, but forcing C1 allows job to run
-            if cause.startswith("Symmetry problems"):
+            #Also sometimes random numerical problems are fixed this way
+            if cause.startswith("Symmetry problems") or cause.startswith("Numerical failure"):
                 deck = self.get_deck(force_c1_symmetry=True)
                 return self.run_and_extract(deck)
 
             #Sometimes lowered symmetry can fix optimization problem
-            elif cause.startswith("Geometry optimization failed") and not jobdata["force_c1_symmetry"]:
+            elif (cause.startswith("Geometry optimization failed") or cause.startswith("Convergence failure")) and not jobdata["force_c1_symmetry"]:
                 sys.stderr.write("Trying c1 symmetry for optimization\n")
                 deck = self.get_deck(force_c1_symmetry=True)
+                return self.run_and_extract(deck)
+
+            #If memory runs short, try reducing nproc to give more memory per core
+            elif cause.startswith("Memory shortage") and self.nproc > 1:
+                self.nproc /= 2
+                deck = self.get_deck()
                 return self.run_and_extract(deck)
 
             if not cause:
