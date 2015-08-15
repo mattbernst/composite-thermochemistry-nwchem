@@ -187,8 +187,8 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         logfile = jobdata["logfile"]
         
         t = jobdata["jobname"]
-        if not os.path.exists(tmpdir):
-            os.makedirs(tmpdir)
+        os.system("rm -rf {}".format(tmpdir))
+        os.makedirs(tmpdir)
         
         with open(tmpdir + "/" + deckfile, "w") as outfile:
             outfile.write(jobdata["deck"])
@@ -300,6 +300,8 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                       "sym_center_map is inconsistent" :
                       "Symmetry problems with geometry. Forcing C1.",
                       "non-Abelian symmetry not permitted" :
+                      "Symmetry problems with geometry. Forcing C1.",
+                      "AUTOZ failed" :
                       "Symmetry problems with geometry. Forcing C1."}
 
             cause = ""

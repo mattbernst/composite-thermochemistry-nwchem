@@ -856,8 +856,8 @@ class G4_mp2(Gn_common):
         # only available _after_ SCF statement
 
         self.initialize_atoms_list()
-        self.send_nwchem_cmd("driver; maxiter 999; xyz {0}; end".format(self.geohash))
-        #self.send_nwchem_cmd("scf; maxiter 999; end")
+        self.send_nwchem_cmd("driver; maxiter 200; xyz {0}; end".format(self.geohash))
+        self.send_nwchem_cmd("scf; maxiter 99; end")
 
         # optimize the geometry, ignore energy and gradient results
         if self.is_atom():
@@ -1244,7 +1244,7 @@ class G3_mp2(Gn_common):
 
         self.say('optimize.')
         self.send_nwchem_cmd("scf; maxiter 99; end")
-        self.send_nwchem_cmd("driver; maxiter 999; xyz {0}; end".format(self.geohash))
+        self.send_nwchem_cmd("driver; maxiter 200; xyz {0}; end".format(self.geohash))
 
         self.send_nwchem_cmd("basis noprint ; * library 6-31G* ; end")
         scfcmd = self.build_SCF_cmd()
