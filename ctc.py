@@ -167,7 +167,8 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         return {"deck" : deck, "pymodel" : pymodel, "geometry" : self.geofile,
                 "jobname" : jobname, "jsfile" : jsfile, "tmpdir" : tmpdir,
                 "deckfile" : deckfile, "logfile" : logfile,
-                "log_location" : log_location}
+                "log_location" : log_location,
+                "force_c1_symmetry" : force_c1_symmetry}
 
     def get_banner(self, prefix):
         """Get a small banner to describe the job currently being run.
@@ -294,6 +295,8 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                       "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
                       "driver: task_gradient failed" :
                       "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
+                      "Failed to converge in maximum number of steps" :
+                      "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
                       "sym_center_map is inconsistent" :
                       "Symmetry problems with geometry. Forcing C1.",
                       "non-Abelian symmetry not permitted" :
@@ -308,11 +311,17 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
             #Sometimes autosym fails, but forcing C1 allows job to run
             if cause.startswith("Symmetry problems"):
                 deck = self.get_deck(force_c1_symmetry=True)
-                return self.run_and_extract(deck)                    
+                return self.run_and_extract(deck)
+
+            #Sometimes lowered symmetry can fix optimization problem
+            elif cause.startswith("Geometry optimization failed") and not jobdata["force_c1_symmetry"]:
+                sys.stderr.write("Trying c1 symmetry for optimization\n")
+                deck = self.get_deck(force_c1_symmetry=True)
+                return self.run_and_extract(deck)
 
             if not cause:
                 sys.stderr.write("Unknown error. See details in {}\n".format(log_location))
-                cause = "unknown"
+                cause = "unknown - {}".format(log_location)
 
             return cause
 
