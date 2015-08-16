@@ -292,11 +292,11 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                       "bas_tag_lib: no such basis available" :
                       "Input contains unparameterized elements. These methods are tested only for main group elements through the second row.",
                       "driver_energy_step: energy failed" :
-                      "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
+                      "Geometry optimization failure. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
                       "driver: task_gradient failed" :
-                      "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
+                      "Geometry optimization failure. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
                       "Failed to converge in maximum number of steps" :
-                      "Geometry optimization failed. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
+                      "Geometry optimization failure. You may need to provide an input geometry that is closer to equilibrium. See details in " + log_location,
                       "sym_center_map is inconsistent" :
                       "Symmetry problems with geometry. Forcing C1.",
                       "non-Abelian symmetry not permitted" :
@@ -309,7 +309,11 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                       "Memory shortage",
                       "dgesv failed" :
                       "Numerical failure",
+                      "moints_epair_eval: zero denominator" :
+                      "Numerical failure",
                       "maximum iterations exceeded" :
+                      "Convergence failure",
+                      "calculations not reaching convergence" :
                       "Convergence failure"}
 
             cause = ""
@@ -320,13 +324,11 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
 
             #Sometimes autosym fails, but forcing C1 allows job to run
             #Also sometimes random numerical problems are fixed this way
-            if cause.startswith("Symmetry problems") or cause.startswith("Numerical failure"):
-                deck = self.get_deck(force_c1_symmetry=True)
-                return self.run_and_extract(deck)
-
-            #Sometimes lowered symmetry can fix optimization problem
-            elif (cause.startswith("Geometry optimization failed") or cause.startswith("Convergence failure")) and not jobdata["force_c1_symmetry"]:
-                sys.stderr.write("Trying c1 symmetry for optimization\n")
+            symmetry_problems = ["Symmetry problems", "Numerical failure",
+                                 "Geometry optimization failure", "Convergence failure"]
+            symfail = [cause.startswith(p) for p in symmetry_problems]
+            if True in symfail and not jobdata["force_c1_symmetry"]:
+                sys.stderr.write("Trying c1 symmetry to fix previous failure\n")
                 deck = self.get_deck(force_c1_symmetry=True)
                 return self.run_and_extract(deck)
 
