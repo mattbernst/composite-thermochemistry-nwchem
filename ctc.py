@@ -349,6 +349,10 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         """
 
         megabytes = 0
+        #default memory allocation scheme gives too little
+        #to global memory, so pad total memory value to get
+        #closer to real practical RAM limits
+        padding = 1.5
         
         try:
             with open("/proc/meminfo") as infile:
@@ -356,7 +360,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
             for line in data.split("\n"):
                 if "MemTotal" in line:
                     kilobytes = int(line.strip().split()[1])
-                    megabytes = kilobytes / 1024
+                    megabytes = int((kilobytes * padding) / 1024)
         except IOError:
             megabytes = 1000
 
