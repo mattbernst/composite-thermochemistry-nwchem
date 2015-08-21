@@ -314,7 +314,9 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                       "maximum iterations exceeded" :
                       "Convergence failure",
                       "calculations not reaching convergence" :
-                      "Convergence failure"}
+                      "Convergence failure",
+                      "no. of closed-electrons is not even" :
+                      "Incorrect multiplicity specified for system"}
 
             cause = ""
             for k, v in sorted(errors.items()):

@@ -703,8 +703,8 @@ def limits_high():
     convergence.
     """
 
-    #send_nwchem_cmd("scf; maxiter 999; end")
-    send_nwchem_cmd("driver; maxiter 999; end")
+    send_nwchem_cmd("scf; maxiter 99; end")
+    send_nwchem_cmd("driver; maxiter 99; end")
 
 def optimize():
 # 1 optimize  B3LYP/6-31G(2df,p)
