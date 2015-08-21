@@ -289,7 +289,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
             logdata = "".join(log)
             errors = {"no. of electrons and multiplicity not compatible" :
                       "The multiplicity appears to be incorrect for the given system and charge.",
-                      "no. of closed-shell electrons is not event" :
+                      "no. of closed-shell electrons is not even" :
                       "The multiplicity appears to be incorrect for the given system and charge.",
                       "bas_tag_lib: no such basis available" :
                       "Input contains unparameterized elements. These methods are tested only for main group elements through the second row.",
