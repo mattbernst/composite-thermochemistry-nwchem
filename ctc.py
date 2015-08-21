@@ -289,6 +289,8 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
             logdata = "".join(log)
             errors = {"no. of electrons and multiplicity not compatible" :
                       "The multiplicity appears to be incorrect for the given system and charge.",
+                      "no. of closed-shell electrons is not event" :
+                      "The multiplicity appears to be incorrect for the given system and charge.",
                       "bas_tag_lib: no such basis available" :
                       "Input contains unparameterized elements. These methods are tested only for main group elements through the second row.",
                       "driver_energy_step: energy failed" :
@@ -314,9 +316,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                       "maximum iterations exceeded" :
                       "Convergence failure",
                       "calculations not reaching convergence" :
-                      "Convergence failure",
-                      "no. of closed-electrons is not even" :
-                      "Incorrect multiplicity specified for system"}
+                      "Convergence failure"}
 
             cause = ""
             for k, v in sorted(errors.items()):
