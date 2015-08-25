@@ -828,7 +828,6 @@ class G4_mp2(Gn_common):
         self.say('optimize.')
 
         self.send_nwchem_cmd("basis noprint ; * library 6-31G(2df,p) ; end")
-        #self.send_nwchem_cmd("basis spherical noprint ; * library 6-31G(2df,p) ; end")
         scfcmd = self.build_SCF_cmd()
         self.send_nwchem_cmd(scfcmd)
 
@@ -1176,37 +1175,27 @@ class G4_mp2(Gn_common):
 
 class G3_mp2(Gn_common):
     """
-     G4(MP2) composite method for Python under NWChem 6.5
-     Implementation by Matt B. Ernst and Daniel R. Haney
-     7/18/2015
+     G3(MP2) THERMOCHEMICAL METHOD FOR NWCHEM
+    Daniel R. Haney 2015
 
-     Gaussian-4 theory using reduced order perturbation theory
-     Larry A. Curtiss,Paul C. Redfern,Krishnan Raghavachari
-     THE JOURNAL OF CHEMICAL PHYSICS 127, 124105 2007
+    g3mp2.py implements the G3(MP2) composite thermochemical method
+    in Python 2.7 for inclusion in an NWChem6.5 input file.
 
+    It requires:
+        NWChem6.5 Zero Point Energy fix
+        g3mp2large basis set
+        revised 6-31gs basis set, if 3rd row element energies are desired
 
-     1 optimize     @ B3LYP/6-31G(2df,p)
-     2 Ezpe         = zpe at B3LYP/6-31G(2df,p)
-     3 E(MP2)       = MP2(fc)/6-31G(d)
+    The original G3(MP2) method is described in:
+      "Gaussian-3 theory using reduced Moller-Plesset order"
+      Curtiss,Redfern,Raghavachari,Rassolov, and Pople
+      J.Chem.Phys. 110 4703 (1999)
 
-     4 E(ccsd(t))   = CCSD(fc,T)/6-31G(d)
-     5 E(HF/G3LXP)  = HF/G3LargeXP
-     6 E(G3LargeXP) = MP2(fc)/G3LargeXP
-
-     7 E(HF1)       = HF/g4mp2-aug-cc-pVTZ
-     8 E(HF2)       = HF/g4mp2-aug-cc-pVQZ
-       E(HFlimit)   = extrapolated HF limit, =CBS
-
-       delta(HF)    = E(HFlimit) - E(HF/G3LargeXP)
-       E(SO)        = spin orbit energy
-       Ehlc         = High Level Correction
-
-       E(G4(MP2)) = E(CCSD(T)) +
-                    E(G3LargeXP) - E(MP2) +
-                    Delta(HFlimit) +
-                    E(SO) +
-                    E(HLC) +
-                    Ezpe * scale_factor
+    As in the GAMESS ab initio package, it has been modified to
+    permit CCSD(T) instead of QCISD(T) in the base energy term.
+    This results in slightly higher total energies than reported by
+    Curtiss in the G2/97 test set, faster run times, and lower mean
+    average deviations in isodesmic reaction energy calculations.
     """
 
     def __init__(self, *args, **kw):
@@ -1246,7 +1235,8 @@ class G3_mp2(Gn_common):
         self.send_nwchem_cmd("scf; maxiter 99; end")
         self.send_nwchem_cmd("driver; maxiter 99; xyz {0}; end".format(self.geohash))
 
-        self.send_nwchem_cmd("basis noprint ; * library 6-31G* ; end")
+        #self.send_nwchem_cmd("basis noprint ; * library 6-31G* ; end")
+        self.basis_prepare("6-31G*", output="6-31G*", coordinates="cartesian")
         scfcmd = self.build_SCF_cmd()
         self.send_nwchem_cmd(scfcmd)
 
@@ -1359,10 +1349,7 @@ class G3_mp2(Gn_common):
 
         self.say('GMP2large.')
 
-        self.send_nwchem_cmd('''
-            basis spherical
-              * library g3mp2large
-            end''')
+        self.basis_prepare("g3mp2large", input="6-31G*", coordinates="spherical")
 
         self.send_nwchem_cmd("unset mp2:*")
 
