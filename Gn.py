@@ -375,14 +375,11 @@ class Gn_common(object):
         xyzs.sort()
         geofile = xyzs[-1]
 
-        #TODO: use Abelian symmetries instead of c1
+        #TODO: use largest Abelian subgroup symmetries instead of c1
         if self.multiplicity != "singlet":
             symmetry_block = "symmetry c1;"
-        else:
-            symmetry_block = ""
-
-        geoblock = "geometry units angstroms print xyz; {0} load {1}; end"
-        self.send_nwchem_cmd(geoblock.format(symmetry_block, geofile))
+            geoblock = "geometry units angstroms print xyz; {0} load {1}; end"
+            self.send_nwchem_cmd(geoblock.format(symmetry_block, geofile))
 
     def report_dHf(self):
         """Report change in heat of formation going from 0 K to 298 K.
