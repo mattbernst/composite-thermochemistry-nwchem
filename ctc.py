@@ -222,6 +222,53 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
 
         make_stdio_blocking()
 
+    def parse_summary(self, summary):
+        """Parse the summary banner from NWChem log file to get individual
+        energy components from the job.
+
+        :param summary: block of summary text to parse
+        :type summary : str
+        :return: parsed components
+        :rytpe : dict
+        """
+
+        D = {}
+        for line in summary.split("\n"):
+            #ZPE(HF/6-31G(d))=     0.033039   ZPE Scale Factor =     0.892900
+            if "=" in line:
+                pieces = []
+                for chunk in line.split():
+                    if chunk.endswith("="):
+                        pieces.append(chunk[:-1])
+                        pieces.append("=")
+                    else:
+                        pieces.append(chunk)
+
+                buffer = []
+                for piece in pieces:
+                    try:
+                        fv = float(piece)
+                    except:
+                        fv = None
+                    if fv is not None:
+                        key = " ".join(buffer).strip()
+                        D[key] = fv
+                        buffer = []
+                    elif piece != "=":
+                        buffer.append(piece)
+
+            #HEAT OF FORMATION   (0K):     -21.70 kCal/mol
+            elif ":" in line:
+                try:
+                    a, b = line.split(":")
+                    a = a.strip()
+                    f = float(b.split()[0])
+                    D[a] = f
+                except ValueError:
+                    pass
+
+        return D
+
     def run_and_extract(self, jobdata):
         """Run calculation job and handle logged output, including helpful
         error messages.
@@ -270,11 +317,13 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         print(summary)
 
         #Job ran to expected completion
-        if summary:            
+        if summary:
+            parsed = self.parse_summary(summary)
             records = {"summary" : summary, "multiplicity" : self.multiplicity,
                        "nproc" : self.nproc, "memory" : self.memory,
                        "geofile" : self.geofile, "model" : self.model,
-                       "charge" : self.charge, "elapsed" : elapsed}
+                       "charge" : self.charge, "elapsed" : elapsed,
+                       "components" : parsed}
         
             with open(jobdata["jsfile"], "w") as jshandle:
                 json.dump(records, jshandle, sort_keys=True, indent=2)
