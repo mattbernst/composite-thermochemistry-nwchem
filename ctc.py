@@ -279,6 +279,11 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
          -For geometry optimization failure, try +4 ammonia, triplet
           (it is surprisingly hard to make geometry optimization fail)
          -For symmetry failure, try g3mp2-ccsdt h2 (with NWChem < r27285)
+
+        :param jobdata: data to control current job
+        :type jobdata : dict
+        :return: extracted data or error
+        :rtype : dict
         """
 
         log_location = jobdata["log_location"]
@@ -291,7 +296,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                 serialized = jsin.read()
             deserialized = json.loads(serialized)
             print(deserialized["summary"])
-            return
+            return deserialized
 
         else:
             rerun = False
@@ -331,7 +336,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
             if not self.noclean:
                 os.system("rm -rf {0}".format(jobdata["tmpdir"]))
 
-            return ""
+            return records
 
         #Job failed somehow
         else:
@@ -393,7 +398,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                 sys.stderr.write("Unknown error. See details in {}\n".format(log_location))
                 cause = "unknown - {}".format(log_location)
 
-            return cause
+            return {"error" : cause}
 
     def get_memory(self):
         """Automatically get available memory (Linux only)
@@ -455,11 +460,23 @@ def main(args):
 
     m.run_and_extract(deck)
 
+def csvwrite(outname, rows, header):
+    with open(outname, "w") as outfile:
+        d = csv.DictWriter(outfile, fieldnames=header)
+        d.writeheader()
+        for row in rows:
+            d.writerow(row)
+    
 def csvmain(args):
     failures = []
+    successes = []
+    header = []
+
+    columns = ["elapsed", "memory", "nproc"]
     
     with open(args.csv) as csvfile:
-        rows = [r for r in csv.DictReader(csvfile)]
+        reader = csv.DictReader(csvfile)
+        rows = [r for r in reader]
 
     for j, row in enumerate(rows):
         msg = "Running {} of {}".format(j + 1, len(rows))
@@ -468,10 +485,25 @@ def csvmain(args):
                    row["Multiplicity"], args.nproc, args.memory, args.tmpdir,
                    args.verbose, args.noclean, args.force)
         deck = m.get_deck()
-        failure = m.run_and_extract(deck)
-        if failure:
+        result = m.run_and_extract(deck)
+        if result.get("error"):
             failures.append((row["System"], row["Charge"], row["Multiplicity"],
-                             failure))
+                             result.get("error")))
+
+        else:
+            if not header:
+                extras = result["components"].keys() + columns
+                header = reader.fieldnames + sorted(extras)
+                model = result["model"]
+                outname = args.csv.replace(".csv", "-{model}-out.csv".format(model=model))
+            s = row
+            
+            for col in columns:
+                s[col] = result[col]
+                
+            s.update(result["components"])
+            successes.append(s)
+            csvwrite(outname, successes, header)
 
     print "{} of {} jobs successfully ran".format(len(rows) - len(failures),
                                                   len(rows))
