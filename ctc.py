@@ -481,11 +481,27 @@ def csvmain(args):
     for j, row in enumerate(rows):
         msg = "Running {} of {}".format(j + 1, len(rows))
         print(msg)
-        m = Runner(args.model, row["System"], row["Charge"],
-                   row["Multiplicity"], args.nproc, args.memory, args.tmpdir,
-                   args.verbose, args.noclean, args.force)
-        deck = m.get_deck()
-        result = m.run_and_extract(deck)
+
+        #Bypass incomplete CSV specification
+        if row["System"] == "none":
+            print ("Skipping system without defined geometry")
+            result = {"charge" : row["Charge"],
+                      "components" : {},
+                      "nproc" : args.nproc,
+                      "elapsed" : 0.0,
+                      "multiplicity" : row["Multiplicity"],
+                      "model" : args.model,
+                      "memory" : args.memory,
+                      "geofile" : "none",
+                      "summary" : "Did not run"}
+            
+        else:
+            m = Runner(args.model, row["System"], row["Charge"],
+                       row["Multiplicity"], args.nproc, args.memory, args.tmpdir,
+                       args.verbose, args.noclean, args.force)
+            deck = m.get_deck()
+            result = m.run_and_extract(deck)
+            
         if result.get("error"):
             failures.append((row["System"], row["Charge"], row["Multiplicity"],
                              result.get("error")))
