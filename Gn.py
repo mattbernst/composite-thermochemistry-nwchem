@@ -1349,10 +1349,11 @@ class G3_mp2(Gn_common):
         self.basis_prepare("g3mp2large", input="6-31G*", coordinates="spherical")
 
         self.send_nwchem_cmd("unset mp2:*")
+        self.send_nwchem_cmd("mp2; freeze atomic; end")
 
         if self.multiplicity != "singlet" or self.is_atom():
             self.send_nwchem_cmd("unset tce:*")
-            self.send_nwchem_cmd("tce ; mp2 ; end")
+            self.send_nwchem_cmd("tce ; mp2 ; freeze atomic; end")
             en = nwchem.task_energy("tce")
         else:
             en = nwchem.task_energy("mp2")

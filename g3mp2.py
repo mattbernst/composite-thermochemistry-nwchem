@@ -1112,10 +1112,11 @@ def MP2_g3mp2large():
         end''')
 
     send_nwchem_cmd("unset mp2:*")
+    send_nwchem_cmd("mp2; freeze atomic; end")
 
     if Multiplicity > 1 or is_atom():
         send_nwchem_cmd("unset tce:*")
-        send_nwchem_cmd("tce ; mp2 ; end")
+        send_nwchem_cmd("tce ; mp2 ; freeze atomic ; end")
         en = nwchem.task_energy("tce")
     else:
         en = nwchem.task_energy("mp2")
