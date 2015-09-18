@@ -376,7 +376,7 @@ class Gn_common(object):
         geofile = xyzs[-1]
 
         #TODO: use largest Abelian subgroup symmetries instead of c1
-        if self.multiplicity != "singlet":
+        if self.multiplicity != "singlet" or getattr(self, "highest_correlated", "") == "qcisd(t)":
             symmetry_block = "symmetry c1;"
             geoblock = "geometry units angstroms print xyz; {0} load {1}; end"
             self.send_nwchem_cmd(geoblock.format(symmetry_block, geofile))

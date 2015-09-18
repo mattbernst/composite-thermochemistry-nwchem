@@ -39,7 +39,7 @@ tpl = """start {startname}
 memory {memory} mb
 title {jobname}
 
-geometry units angstroms print xyz
+geometry units angstroms print xyz {autoz}
  {symmetry}
  load {structure}
 end
@@ -89,9 +89,16 @@ class Runner(object):
 
         return result
 
-    def get_deck(self, force_c1_symmetry=False):
+    def get_deck(self, force_c1_symmetry=False, noautoz=False):
         """Create a complete job deck for execution. Also return data needed
         to set up job execution.
+
+        :param force_c1_symmetry: if True, disable automatic symmetry detection
+        :type force_c1_symmetry : bool
+        :param noautoz: if True, force AUTOZ off in nwchem
+        :type noautoz : bool
+        :return: job data
+        :rtype : dict
         """
 
         memory_per_core = self.memory / self.nproc
@@ -101,6 +108,9 @@ class Runner(object):
 
         #symmetry auto-detection will activate if no explicit symmetry set
         symmetry = {True : "symmetry c1", False : ""}[force_c1_symmetry]
+
+        #AUTOZ internal coordinates will activate unless explicitly stopped
+        autoz = {True : "noautoz", False : ""}[noautoz]
 
         #G3 (MP2, CCSDT)
         if self.model == "g3mp2-ccsdt":
@@ -157,7 +167,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         deck = tpl.format(startname=startname, memory=memory_per_core,
                           jobname=jobname,
                           structure=os.path.basename(self.geofile),
-                          composite=m, symmetry=symmetry)
+                          composite=m, symmetry=symmetry, autoz=autoz)
         
         tmpdir = self.tmpdir + jobname
         deckfile = jobname + ".nw"
@@ -358,7 +368,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                       "non-Abelian symmetry not permitted" :
                       "Symmetry problems with geometry. Forcing C1.",
                       "AUTOZ failed" :
-                      "Symmetry problems with geometry. Forcing C1.",
+                      "AUTOZ failure: forcing AUTOZ off",
                       "ran out of MA memory" :
                       "Memory shortage",
                       "MA error" :
@@ -392,6 +402,11 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
             elif cause.startswith("Memory shortage") and self.nproc > 1:
                 self.nproc /= 2
                 deck = self.get_deck()
+                return self.run_and_extract(deck)
+
+            #If AUTOZ fails, disable AUTOZ in geometry block
+            elif cause.startswith("AUTOZ fail"):
+                deck = self.get_deck(noautoz=True)
                 return self.run_and_extract(deck)
 
             if not cause:
