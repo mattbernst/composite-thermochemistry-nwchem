@@ -25,11 +25,13 @@ kT_298_perMol   = (Boltzmann * T298 * Avogadro) / JoulePerKcal / kCalPerHartree
 class Gn_common(object):
     def __init__(self, charge=0, multiplicity="singlet", tracing=False,
                  debug=False, integral_memory_cache=3500000000,
-                 integral_disk_cache=0, force_c1_symmetry=False):
+                 integral_disk_cache=0, force_c1_symmetry=False,
+                 noautoz=False):
 
         self.dhf298      = 0.0
         self.dhf0        = 0.0
         self.force_c1_symmetry = force_c1_symmetry
+        self.noautoz = noautoz
         multiplets  = ["(null)", "singlet", "doublet", "triplet", "quartet",
                        "quintet", "hextet","septet", "octet"]
         self.integral_memory_cache = integral_memory_cache
@@ -378,8 +380,10 @@ class Gn_common(object):
         #TODO: use largest Abelian subgroup symmetries instead of c1
         if self.multiplicity != "singlet" or getattr(self, "highest_correlated", "") == "qcisd(t)":
             symmetry_block = "symmetry c1;"
-            geoblock = "geometry units angstroms print xyz; {0} load {1}; end"
-            self.send_nwchem_cmd(geoblock.format(symmetry_block, geofile))
+            geoblock = "geometry units angstroms print xyz {0}; {1} load {2}; end"
+            autoz = {True : "noautoz", False : ""}[self.noautoz]
+            self.send_nwchem_cmd(geoblock.format(autoz, symmetry_block,
+                                                 geofile))
 
     def report_dHf(self):
         """Report change in heat of formation going from 0 K to 298 K.
