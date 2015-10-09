@@ -38,7 +38,7 @@
 
     hostname        = mbe-laptop
     program         = nwchem
-    date            = Sat Jun 27 02:31:09 2015
+    date            = Thu Oct  8 16:28:05 2015
 
     compiled        = Sun_Jun_21_14:33:32_2015
     source          = /opt/science/nwchem/Nwchem-dev.revision27151-src.2015-05-26
@@ -48,7 +48,7 @@
     input           = NH3-QCISDT.nw
     prefix          = NH3-QCISDT.
     data base       = ./NH3-QCISDT.db
-    status          = restart
+    status          = startup
     nproc           =        1
     time left       =     -1s
 
@@ -57,10 +57,10 @@
            Memory information
            ------------------
 
-    heap     =  249999996 doubles =   1907.3 Mbytes
-    stack    =  250000001 doubles =   1907.3 Mbytes
+    heap     =  249999994 doubles =   1907.3 Mbytes
+    stack    =  249999999 doubles =   1907.3 Mbytes
     global   =  500000000 doubles =   3814.7 Mbytes (distinct from heap & stack)
-    total    =  999999997 doubles =   7629.4 Mbytes
+    total    =  999999993 doubles =   7629.4 Mbytes
     verify   = yes
     hardfail = no 
 
@@ -71,32 +71,6 @@
   0 permanent = .
   0 scratch   = .
 
-
-           Previous task information
-           -------------------------
-
-    Theory    = python                          
-    Operation =                               
-    Status    = unknown                       
-    Qmmm      = F
-    Ignore    = F
-
-
-           Geometries in the database
-           --------------------------
-
-       Name                              Natoms  Last Modified
-       --------------------------------  ------  ------------------------
-    1  geometry                               4  Sat Jun 27 02:31:01 2015  
-
-  The geometry named "geometry" is the default for restart
-
-
-
-           Basis sets in the database
-           --------------------------
-
-  There are no basis sets in the database
 
 
 
@@ -623,6 +597,8 @@
 
 
 
+Wall: 9.64 seconds
+
 
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NWChem6.5
                SUMMARY OF G3(MP2,QCISDT ) CALCULATIONS              
@@ -631,14 +607,14 @@
     MP2/G3MP2large  =   -56.448179   delta(MP2)       =    -0.093967
     ZPE(HF/6-31G(d))=     0.033039   ZPE Scale Factor =     0.892900
     HLC             =    -0.037116   Free Energy      =     0.000000
-    Thermal Energy  =     0.039834   Thermal Enthalpy =     0.040778
+    Thermal Energy  =     0.039853   Thermal Enthalpy =     0.040798
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    E(G3(MP2)) @ 0K =   -56.470257   E(G3(MP2)) @298K =   -56.467425
-    H(G3(MP2))      =   -56.463649   G(G3(MP2))       =     0.000000
+    E(G3(MP2)) @ 0K =   -56.470257   E(G3(MP2)) @298K =   -56.467406
+    H(G3(MP2))      =   -56.466462   G(G3(MP2))       =     0.000000
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
           HEAT OF FORMATION   (0K):      -8.40 kCal/mol
-          HEAT OF FORMATION (298K):     -10.69 kCal/mol
+          HEAT OF FORMATION (298K):     -10.08 kCal/mol
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -675,4 +651,4 @@
       T. Nakajima, S. Niu, L. Pollack, M. Rosing, K. Glaesemann, G. Sandrone,
       M. Stave, H. Taylor, G. Thomas, J. H. van Lenthe, A. T. Wong, Z. Zhang.
 
- Total times  cpu:        9.2s     wall:        9.6s
+ Total times  cpu:        9.3s     wall:        9.7s
