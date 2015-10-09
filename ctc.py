@@ -416,15 +416,16 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
             return {"error" : cause}
 
     def get_memory(self):
-        """Automatically get available memory (Linux only)
+        """Automatically get available memory
         """
 
         megabytes = 0
-        #default memory allocation scheme gives too little
-        #to global memory, so pad total memory value to get
-        #closer to real practical RAM limits
+        #NWChem default memory allocation scheme gives too little
+        #to global memory, so pad total memory value to get closer
+        #to real practical RAM limits
         padding = 1.5
-        
+
+        #Works on Linux
         try:
             with open("/proc/meminfo") as infile:
                 data = infile.read()
@@ -432,18 +433,26 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                 if "MemTotal" in line:
                     kilobytes = int(line.strip().split()[1])
                     megabytes = int((kilobytes * padding) / 1024)
+
+        #Works on OS X
         except IOError:
-            megabytes = 1000
+            try:
+                memsize = int(os.popen('sysctl -n hw.memsize').readlines()[0].strip())
+                kilobytes = memsize / 1024
+                megabytes = int((kilobytes * padding) / 1024)
+            except:
+                megabytes = 1000
 
         return max(megabytes, 1000)
 
     def get_nproc(self):
-        """Automatically get number of processors (Linux only)
+        """Automatically get number of processors
         """
 
         nproc = 0
         amd = True
 
+        #Works on Linux
         try:
             with open("/proc/cpuinfo") as infile:
                 data = infile.read()
@@ -458,9 +467,13 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
             #assume hyperthreading if intel processor, use only real cores
             if not amd:
                 nproc /= 2
-        #can't read cpuinfo, so default to 1
+
+        #Works on OS X
         except IOError:
-            nproc = 1
+            try:
+                nproc = int(os.popen('sysctl -n machdep.cpu.core_count').readlines()[0].strip())
+            except:
+                nproc = 1
 
         return max(1, nproc)
 
@@ -470,7 +483,7 @@ def main(args):
                    args.nproc, args.memory, args.tmpdir, args.verbose,
                    args.noclean, args.force)
         deck = m.get_deck()
-    except:
+    except Exception, E:
         return True
 
     m.run_and_extract(deck)
@@ -548,7 +561,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--nproc", help="Number of processor cores to use (auto-assigned if not chosen)", type=int,default=0)
     parser.add_argument("--memory", help="Maximum memory to use, in megabytes (auto-assigned if not chosen)", type=int, default=0)
     parser.add_argument("--multiplicity", help="System spin multiplicity", default="singlet")
-    parser.add_argument("-m", "--model", help="Thermochemical model to use", default="g3mp2-ccsdt")
+    parser.add_argument("-m", "--model", help="Thermochemical model to use, one of: {}".format(available_models), default="g3mp2-ccsdt")
     parser.add_argument("-c", "--charge", help="System charge", type=int, default=0)
     parser.add_argument("-g", "--xyz", help="XYZ geometry file", default="")
     parser.add_argument("--csv", help="CSV file describing a batch of systems to run", default="")
