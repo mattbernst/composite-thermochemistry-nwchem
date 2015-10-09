@@ -1,0 +1,149 @@
+Molecule,System,Charge,Multiplicity,Ee h,Eo h,H298 h,DHfo0 kcal/mol,DHfo298 kcal/mol,Expt. kcal/mol,Deviation kcal/mol
+LiH,test_data/G2-97/lithiumhydride.xyz,0,singlet,-8.05921,-8.05614,-8.05283,32.9,32.9,33.3,0.4
+BeH,test_data/G2-97/berylliumhydride.xyz,0,doublet,-15.23986,-15.23533,-15.23203,81.7,82.3,81.7,-0.6
+CH,test_data/G2-97/ch_rad.xyz,0,doublet,-38.46543,-38.45930,-38.45599,140.2,141.0,142.5,1.5
+CH2(3B1),test_data/G2-97/methylene_triplet.xyz,0,triplet,-39.13589,-39.11916,-39.11536,92.2,92.3,93.7,1.4
+CH2(1A1),test_data/G2-97/methylene_singlet.xyz,0,singlet,-39.11996,-39.10404,-39.10025,101.7,101.8,102.8,1.0
+CH3,test_data/G2-97/methyl_rad.xyz,0,doublet,-39.82226,-39.79362,-39.78955,35.0,34.3,35.0,0.7
+CH4,test_data/G2-97/methane.xyz,0,singlet,-40.50169,-40.45828,-40.45446,-16.0,-17.9,-17.9,0.0
+NH,test_data/G2-97/nh_rad.xyz,0,triplet,-55.20100,-55.19391,-55.19061,84.1,84.1,85.2,1.1
+NH2,test_data/G2-97/nh2_rad.xyz,0,doublet,-55.85779,-55.83957,-55.83579,45.0,44.3,45.1,0.8
+NH3,test_data/G2-97/ammonia.xyz,0,singlet,-56.54145,-56.50829,-56.50448,-8.6,-10.3,-11.0,-0.7
+OH,test_data/G2-97/oh_rad.xyz,0,doublet,-75.70434,-75.69637,-75.69306,8.3,8.4,9.4,1.0
+OH2,test_data/G2-97/water.xyz,0,singlet,-76.40405,-76.38373,-76.37995,-56.9,-57.6,-57.8,-0.2
+FH,test_data/G2-97/hydrogenfluoride.xyz,0,singlet,-100.41147,-100.40277,-100.39947,-65.3,-65.2,-65.1,0.1
+SiH2(1A1),test_data/G2-97/silylene_singlet.xyz,0,singlet,-290.46978,-290.45852,-290.45471,63.4,63.0,65.2,2.2
+SiH2(3B1),test_data/G2-97/silylene_triplet.xyz,0,triplet,-290.43553,-290.42392,-290.42008,85.2,84.8,86.2,1.4
+SiH3,test_data/G2-97/silyl_rad.xyz,0,doublet,-291.08687,-291.06641,-291.06242,48.1,46.8,47.9,1.1
+SiH4,test_data/G2-97/silane.xyz,0,singlet,-291.74132,-291.71125,-291.70720,9.5,7.2,8.2,1.0
+PH2,test_data/G2-97/ph2_rad.xyz,0,doublet,-342.36403,-342.35109,-342.34729,33.3,32.4,33.1,0.7
+PH3,test_data/G2-97/phosphine.xyz,0,singlet,-343.00331,-342.98005,-342.97619,4.7,2.8,1.3,-1.5
+SH2,test_data/G2-97/hydrogensulfide.xyz,0,singlet,-399.25440,-399.23986,-399.23606,-3.8,-4.5,-4.9,-0.4
+ClH,test_data/G2-97/hydrogenchloride.xyz,0,singlet,-460.66253,-460.65610,-460.65279,-21.6,-21.6,-22.1,-0.4
+Li2,test_data/G2-97/li2.xyz,0,singlet,-14.97309,-14.97234,-14.96865,49.1,49.2,51.6,2.4
+LiF,test_data/G2-97/lithiumfluoride.xyz,0,singlet,-107.37095,-107.36874,-107.36539,-80.3,-80.4,-80.1,0.3
+C2H2,test_data/G2-97/acetylene.xyz,0,singlet,-77.30427,-77.27870,-77.27478,54.4,54.3,54.2,-0.2
+C2H4,test_data/G2-97/ethylene.xyz,0,singlet,-78.55848,-78.50931,-78.50529,14.3,12.3,12.5,0.2
+C2H6,test_data/G2-97/ethane.xyz,0,singlet,-79.79709,-79.72487,-79.72040,-16.3,-20.1,-20.1,0.0
+CN,test_data/G2-97/cyano_rad.xyz,0,doublet,-92.68261,-92.67788,-92.67457,104.1,104.9,104.9,0.0
+HCN,test_data/G2-97/hydrogencyanide.xyz,0,singlet,-93.39406,-93.37825,-93.37474,30.7,30.6,31.5,0.9
+CO,test_data/G2-97/carbonmonoxide.xyz,0,singlet,-113.27480,-113.26997,-113.26666,-27.8,-27.0,-26.4,0.6
+HCO,test_data/G2-97/hco_rad.xyz,0,doublet,-113.80665,-113.79410,-113.79029,9.4,9.4,10.0,0.6
+H2CO,test_data/G2-97/formaldehyde.xyz,0,singlet,-114.45951,-114.43376,-114.42994,-26.0,-26.9,-26.0,0.9
+H3COH,test_data/G2-97/methylalcohol.xyz,0,singlet,-115.68115,-115.63175,-115.62748,-45.6,-48.2,-48.0,0.2
+N2,test_data/G2-97/n2.xyz,0,singlet,-109.49341,-109.48803,-109.48473,0.6,0.6,0.0,-0.6
+H2NNH2,test_data/G2-97/hydrazine.xyz,0,singlet,-111.82967,-111.77832,-111.77407,27.7,24.2,22.8,-1.4
+NO,test_data/G2-97/nitricoxide.xyz,0,doublet,-129.84061,-129.83625,-129.83294,21.7,21.7,21.6,-0.1
+O2,test_data/G2-97/o2.xyz,0,triplet,-150.25636,-150.25274,-150.24943,-0.1,-0.1,0.0,0.1
+HOOH,test_data/G2-97/hydrogenperoxide.xyz,0,singlet,-151.49311,-151.46790,-151.46368,-30.5,-31.9,-32.5,-0.6
+F2,test_data/G2-97/f2.xyz,0,singlet,-199.43123,-199.42890,-199.42556,1.2,1.2,0.0,-1.2
+CO2,test_data/G2-97/carbondioxide.xyz,0,singlet,-188.51548,-188.50435,-188.50073,-95.6,-95.7,-94.1,1.6
+Na2,test_data/G2-97/na2.xyz,0,singlet,-324.24249,-324.24214,-324.23819,30.3,29.7,34.0,4.3
+Si2,test_data/G2-97/si2.xyz,0,triplet,-578.56793,-578.56686,-578.56331,137.4,138.1,139.9,1.8
+P2,test_data/G2-97/p2.xyz,0,singlet,-682.42038,-682.41864,-682.41524,35.3,34.9,34.3,-0.6
+S2,test_data/G2-97/s2.xyz,0,triplet,-796.08502,-796.08349,-796.08006,31.8,31.8,30.7,-1.1
+Cl2,test_data/G2-97/cl2.xyz,0,singlet,-920.07477,-920.07363,-920.07010,1.9,1.9,0.0,-1.9
+NaCl,test_data/G2-97/sodiumchloride.xyz,0,singlet,-622.25485,-622.25406,-622.25039,-44.3,-44.6,-43.6,1.1
+SiO,test_data/G2-97/siliconmonoxide.xyz,0,singlet,-364.56128,-364.55856,-364.55523,-24.7,-24.4,-24.6,-0.2
+SC,test_data/G2-97/carbonmonosulfide.xyz,0,singlet,-436.06541,-436.06259,-436.05927,65.1,65.9,66.9,1.0
+SO,test_data/G2-97/sulfurmonoxide.xyz,0,triplet,-473.19345,-473.19100,-473.18767,1.5,1.5,1.2,-0.3
+ClO,test_data/G2-97/chlorinemonoxide.xyz,0,doublet,-535.12399,-535.12217,-535.11878,26.6,26.6,24.2,-2.4
+FCl,test_data/G2-97/chlorinemonofluoride.xyz,0,singlet,-559.77447,-559.77275,-559.76936,-11.9,-12.0,-13.2,-1.3
+Si2H6,test_data/G2-97/disilane.xyz,0,singlet,-582.29922,-582.25183,-582.24576,21.4,17.6,19.1,1.5
+CH3Cl,test_data/G2-97/methylchloride.xyz,0,singlet,-499.95179,-499.91520,-499.91121,-17.2,-19.1,-19.6,-0.4
+H3CSH,test_data/G2-97/methanethiol.xyz,0,singlet,-438.54825,-438.50371,-438.49913,-2.4,-4.9,-5.5,-0.6
+HOCl,test_data/G2-97/hypochlorousacid.xyz,0,singlet,-535.78681,-535.77429,-535.77038,-16.5,-17.2,-17.8,-0.6
+SO2,test_data/G2-97/sulfurdioxide.xyz,0,singlet,-548.43425,-548.42772,-548.42367,-67.8,-68.4,-71.0,-2.5
+BF3,test_data/G2-97/trifluoro-borane.xyz,0,singlet,-324.44789,-324.43583,-324.43133,-269.4,-270.0,-271.4,-1.4
+BCl3,test_data/G2-97/trichloro-borane.xyz,0,singlet,-1405.13372,-1405.12638,-1405.12099,-94.9,-95.1,-96.3,-1.2
+AlF3,test_data/G2-97/aluminumtrifluoride.xyz,0,singlet,-541.94643,-541.93881,-541.93339,-288.5,-289.3,-289.0,0.3
+AlCl3,test_data/G2-97/aluminumtrichloride.xyz,0,singlet,-1622.67741,-1622.67281,-1622.66647,-141.3,-141.6,-139.7,1.9
+CF4,test_data/G2-97/carbontetrafluoride.xyz,0,singlet,-437.33090,-437.31445,-437.30947,-221.8,-223.1,-223.0,0.1
+CCl4,test_data/G2-97/carbontetrachloride.xyz,0,singlet,-1878.29754,-1878.28858,-1878.28187,-22.6,-23.0,-22.9,0.1
+COS,test_data/G2-97/carbonylsulfide.xyz,0,singlet,-511.35900,-511.35020,-511.34637,-36.1,-36.0,-33.1,2.9
+CS2,test_data/G2-97/carbondisulfide.xyz,0,singlet,-834.20054,-834.19389,-834.18980,24.8,25.0,28.0,2.9
+COF2,test_data/G2-97/carbonicdifluoride.xyz,0,singlet,-312.90093,-312.88737,-312.88307,-144.9,-145.6,-149.1,-3.5
+SiF4,test_data/G2-97/silicontetrafluoride.xyz,0,singlet,-688.87654,-688.86433,-688.85833,-382.6,-383.8,-386.0,-2.2
+SiCl4,test_data/G2-97/tetrachloro-silane.xyz,0,singlet,-2129.80161,-2129.79463,-2129.78708,-155.9,-156.4,-158.4,-2.0
+N2O,test_data/G2-97/nitrousoxide.xyz,0,singlet,-184.59410,-184.58333,-184.57967,20.1,19.2,19.6,0.4
+ClNO,test_data/G2-97/nitrosylchloride.xyz,0,singlet,-589.89373,-589.88742,-589.88308,13.6,13.2,12.4,-0.8
+NF3,test_data/G2-97/nitrogentrifluoride.xyz,0,singlet,-353.94896,-353.93904,-353.93446,-30.3,-31.6,-31.6,0.0
+PF3,test_data/G2-97/phosphorustrifluoride.xyz,0,singlet,-640.74571,-640.73756,-640.73248,-222.0,-223.3,-229.1,-5.8
+O3,test_data/G2-97/ozone.xyz,0,singlet,-225.33028,-225.32318,-225.31926,35.0,34.3,34.1,-0.2
+F2O,test_data/G2-97/difluorinemonoxide.xyz,0,singlet,-274.55095,-274.54568,-274.54154,7.2,6.7,5.9,-0.8
+ClF3,test_data/G2-97/chlorinetrifluoride.xyz,0,singlet,-759.24542,-759.23874,-759.23337,-34.0,-34.9,-38.0,-3.1
+C2F4,test_data/G2-97/tetrafluoroethylene.xyz,0,singlet,-475.33759,-475.31697,-475.31060,-161.0,-161.7,-157.4,4.3
+C2Cl4,test_data/G2-97/tetrachloroethylene.xyz,0,singlet,-1916.37439,-1916.35968,-1916.35209,-4.9,-5.0,-3.0,2.0
+CF3CN,test_data/G2-97/trifluoro-acetonitrile.xyz,0,singlet,-430.30195,-430.28009,-430.27391,-119.6,-120.4,-118.4,2.0
+CH3CCH (propyne),test_data/G2-97/propyne.xyz,0,singlet,-116.61208,-116.55859,-116.55357,45.7,44.1,44.2,0.1
+CH2=C=CH2(allene),test_data/G2-97/allene.xyz,0,singlet,-116.61022,-116.55696,-116.55218,46.8,45.0,45.5,0.5
+C3H4(cyclopropene),test_data/G2-97/cyclopropene.xyz,0,singlet,-116.57342,-116.51940,-116.51507,70.3,68.2,66.2,-2.0
+CH3CH=CH2(propylene),test_data/G2-97/propene.xyz,0,singlet,-117.86172,-117.78483,-117.77973,8.4,4.8,4.8,0.0
+C3H6(cyclopropane),test_data/G2-97/cyclopropane.xyz,0,singlet,-117.84875,-117.77029,-117.76591,17.5,13.4,12.7,-0.7
+C3H8(propane),test_data/G2-97/propane.xyz,0,singlet,-119.09615,-118.99621,-118.99064,-19.6,-25.0,-25.0,0.0
+CH2CHCHCH2(butadiene),"test_data/G2-97/1,3-butadiene.xyz",0,singlet,-155.93182,-155.84976,-155.84405,30.0,26.5,26.3,-0.2
+C4H6(2-butyne),test_data/G2-97/2-butyne.xyz,0,singlet,-155.91902,-155.83776,-155.83096,37.5,34.7,34.8,0.1
+C4H6(methylene cyclopropane),test_data/G2-97/methylenecyclopropane.xyz,0,singlet,-155.90001,-155.81790,-155.81258,50.0,46.2,47.9,1.7
+C4H6(bicyclobutane),test_data/G2-97/bicyclobutane.xyz,0,singlet,-155.88782,-155.80450,-155.79971,58.4,54.3,51.9,-2.4
+C4H6(cyclobutene),test_data/G2-97/cyclobutene.xyz,0,singlet,-155.91194,-155.82848,-155.82363,43.3,39.3,37.4,-1.9
+C4H8(cyclobutane),test_data/G2-97/cyclobutane.xyz,0,singlet,-157.15077,-157.04381,-157.03863,12.8,7.0,6.8,-0.2
+C4H8(isobutene),test_data/G2-97/2-methyl-1-propene.xyz,0,singlet,-157.16648,-157.06232,-157.05594,1.2,-3.9,-4.0,-0.1
+C4H10(trans butane),test_data/G2-97/trans_butane.xyz,0,singlet,-158.39542,-158.26794,-158.26108,-23.2,-30.0,-30.0,0.0
+C4H10(isobutane),test_data/G2-97/isobutane.xyz,0,singlet,-158.39801,-158.27091,-158.26413,-25.0,-31.9,-32.1,-0.2
+C5H8(spiropentane),test_data/G2-97/spiropentane.xyz,0,singlet,-195.19460,-195.08371,-195.07770,50.1,44.6,44.3,-0.3
+C6H6(benzene),test_data/G2-97/benzene.xyz,0,singlet,-232.15394,-232.05723,-232.05174,24.5,20.3,19.7,-0.6
+CH2F2,test_data/G2-97/difluoromethane.xyz,0,singlet,-238.89808,-238.86636,-238.86226,-106.3,-108.1,-107.7,0.4
+CHF3,test_data/G2-97/trifluoro-methane.xyz,0,singlet,-338.11655,-338.09202,-338.08755,-165.1,-166.7,-166.6,0.1
+CH2Cl2,test_data/G2-97/methylenechloride.xyz,0,singlet,-959.40309,-959.37463,-959.37007,-20.1,-21.7,-22.8,-1.2
+CHCl3,test_data/G2-97/chloroform.xyz,0,singlet,-1418.85253,-1418.83335,-1418.82785,-22.4,-23.5,-24.7,-1.1
+CH3NH2(methylamine),test_data/G2-97/methylamine.xyz,0,singlet,-95.82415,-95.76228,-95.75791,-1.0,-4.6,-5.5,-0.9
+CH3CN (methyl cyanide),test_data/G2-97/acetonitrile.xyz,0,singlet,-132.70698,-132.66316,-132.65857,18.9,17.2,18.0,0.8
+CH3NO2(nitromethane),test_data/G2-97/nitro-methane.xyz,0,singlet,-244.91940,-244.87122,-244.86585,-15.5,-18.5,-17.8,0.7
+CH3ONO (methyl nitrite),test_data/G2-97/methylnitrite.xyz,0,singlet,-244.91518,-244.86828,-244.86287,-13.6,-16.7,-15.9,0.8
+CH3SiH3(methyl silane),test_data/G2-97/methylsilane.xyz,0,singlet,-331.05578,-330.99678,-330.99155,-2.7,-6.5,-7.0,-0.5
+HCOOH (formic acid),test_data/G2-97/formicacid.xyz,0,singlet,-189.69344,-189.66087,-189.65673,-89.2,-91.0,-90.5,0.5
+HCOOCH3(methyl formate),test_data/G2-97/methylformate.xyz,0,singlet,-228.97820,-228.91821,-228.91264,-83.8,-86.9,-85.0,1.9
+CH3CONH2(acetamide),test_data/G2-97/acetamide.xyz,0,singlet,-209.14061,-209.06992,-209.06352,-52.5,-56.1,-57.0,-0.9
+C2H4NH (aziridine),test_data/G2-97/aziridine.xyz,0,singlet,-133.87194,-133.80425,-133.80001,35.0,31.0,30.2,-0.8
+NCCN (cyanogen),test_data/G2-97/cyanogen.xyz,0,singlet,-185.58942,-185.57357,-185.56882,71.6,72.0,73.3,1.3
+(CH3)2NH (dimethylamine),test_data/G2-97/dimethylamine.xyz,0,singlet,-135.11348,-135.02420,-135.01880,1.6,-3.7,-4.4,-0.7
+CH3CH2NH2(trans ethylamine),test_data/G2-97/ethylamine.xyz,0,singlet,-135.12597,-135.03641,-135.03102,-6.1,-11.3,-11.3,0.0
+CH2CO (ketene),test_data/G2-97/ketene.xyz,0,singlet,-152.54073,-152.51026,-152.50573,-11.6,-12.4,-11.4,1.0
+C2H4O (oxirane),test_data/G2-97/ethyleneoxide.xyz,0,singlet,-153.72945,-153.67412,-153.66998,-9.8,-12.8,-12.6,0.3
+CH3CHO (acetaldehyde),test_data/G2-97/acetaldehyde.xyz,0,singlet,-153.77179,-153.71820,-153.71330,-37.5,-40.0,-39.7,0.3
+HCOCOH (glyoxal),test_data/G2-97/ethanedial.xyz,0,singlet,-227.73487,-227.69919,-227.69398,-50.9,-52.3,-50.7,1.6
+CH3CH2OH (ethanol),test_data/G2-97/ethanol.xyz,0,singlet,-154.98519,-154.90810,-154.90280,-52.0,-56.3,-56.2,0.1
+CH3OCH3(dimethylether),test_data/G2-97/dimethylether.xyz,0,singlet,-154.96638,-154.88930,-154.88398,-40.2,-44.5,-44.0,0.5
+C2H4S (thiirane),test_data/G2-97/thiirane.xyz,0,singlet,-476.61754,-476.56437,-476.55999,21.8,19.0,19.6,0.6
+(CH3)2SO (dimethyl sulfoxide),test_data/G2-97/dimethylsulfoxide.xyz,0,singlet,-553.01612,-552.93945,-552.93271,-29.6,-34.1,-36.2,-2.1
+C2H5SH (ethanethiol),test_data/G2-97/ethanethiol.xyz,0,singlet,-477.84844,-477.77610,-477.77033,-6.4,-10.4,-11.1,-0.7
+CH3SCH3(dimethyl sulfide),test_data/G2-97/dimethylsulfide.xyz,0,singlet,-477.84645,-477.77319,-477.76726,-4.6,-8.5,-8.9,-0.4
+CH2=CHF (vinyl fluoride),test_data/G2-97/fluoro-ethene.xyz,0,singlet,-177.75848,-177.71597,-177.71163,-32.5,-34.4,-33.2,1.2
+C2H5Cl (ethyl chloride),test_data/G2-97/ethylchloride.xyz,0,singlet,-539.25444,-539.19000,-539.18495,-22.7,-26.2,-26.8,-0.6
+CH2=CHCl (vinyl chloride),test_data/G2-97/chloro-ethene.xyz,0,singlet,-538.01656,-537.97542,-537.97087,7.3,5.5,8.9,3.4
+CH2=CHCN (acrylonitrile),test_data/G2-97/acrylonitrile.xyz,0,singlet,-170.76890,-170.71996,-170.71479,45.6,44.0,43.2,-0.8
+CH3COCH3(acetone),test_data/G2-97/acetone.xyz,0,singlet,-193.08198,-193.00128,-192.99481,-48.2,-52.0,-51.9,0.0
+CH3COOH (acetic acid),test_data/G2-97/aceticacid.xyz,0,singlet,-229.00430,-228.94473,-228.93915,-100.4,-103.5,-103.4,0.1
+CH3COF (acetyl fluoride),test_data/G2-97/acetylfluoride.xyz,0,singlet,-253.00274,-252.95537,-252.95005,-103.5,-105.7,-105.7,0.0
+CH3COCl (acetyl chloride),test_data/G2-97/acetylchloride.xyz,0,singlet,-613.24769,-613.20202,-613.19635,-55.6,-57.7,-58.0,-0.3
+CH3CH2CH2Cl (propyl chloride),test_data/G2-97/1-chloro-propane.xyz,0,singlet,-578.55386,-578.46192,-578.45550,-26.4,-31.3,-31.5,-0.2
+(CH3)2CHOH (isopropanol),test_data/G2-97/isopropanol.xyz,0,singlet,-194.29071,-194.18653,-194.18003,-59.8,-65.6,-65.2,0.4
+C2H5OCH3(methyl ethyl ether),test_data/G2-97/methoxy-ethane.xyz,0,singlet,-194.27068,-194.16611,-194.15953,-47.0,-52.7,-51.7,1.0
+(CH3)3N (trimethylamine),test_data/G2-97/trimethylamine.xyz,0,singlet,-174.40767,-174.29140,-174.28490,0.9,-5.9,-5.7,0.2
+C4H4O (furan),test_data/G2-97/furan.xyz,0,singlet,-229.93254,-229.86516,-229.86038,-5.1,-8.1,-8.3,-0.2
+C4H4S (thiophene),test_data/G2-97/thiophene.xyz,0,singlet,-552.81330,-552.74908,-552.74393,30.6,27.7,27.5,-0.2
+C4H5N (pyrrole),test_data/G2-97/pyrrole.xyz,0,singlet,-210.08923,-210.00991,-210.00483,30.6,26.7,25.9,-0.8
+C5H5N (pyridine),test_data/G2-97/pyridine.xyz,0,singlet,-248.18373,-248.09827,-248.09291,37.5,33.5,33.6,0.1
+H2,test_data/G2-97/h2.xyz,0,singlet,-1.17721,-1.16747,-1.16417,-0.5,-0.4,0.0,0.4
+HS,test_data/G2-97/sh_rad.xyz,0,doublet,-398.60249,-398.59666,-398.59335,33.7,33.7,34.2,0.4
+CCH,test_data/G2-97/cch_rad.xyz,0,doublet,-76.58037,-76.56843,-76.56432,134.0,135.1,135.1,0.0
+C2H3(2A'),test_data/G2-97/c2h3_rad.xyz,0,doublet,-77.87045,-77.83519,-77.83111,71.3,70.3,71.6,1.3
+CH3CO (2A'),test_data/G2-97/ch3co_rad.xyz,0,doublet,-153.11866,-153.07699,-153.07203,-1.2,-2.7,-2.4,0.3
+H2COH (2A),test_data/G2-97/h2coh_rad.xyz,0,doublet,-115.01561,-114.97960,-114.97534,-2.4,-4.1,-4.1,0.0
+CH3O CS (2A'),test_data/G2-97/ch3o_rad.xyz,0,doublet,-115.00111,-114.96578,-114.96180,6.2,4.4,4.1,-0.3
+CH3CH2O (2A''),test_data/G2-97/ch3ch2o_rad.xyz,0,doublet,-154.30392,-154.24013,-154.23511,1.1,-2.4,-3.7,-1.3
+CH3S (2A'),test_data/G2-97/ch3s_rad.xyz,0,doublet,-437.90191,-437.86749,-437.86332,30.7,29.0,29.8,0.8
+C2H5(2A'),test_data/G2-97/c2h5_rad.xyz,0,doublet,-79.12295,-79.06569,-79.06074,31.3,28.8,28.9,0.1
+(CH3)2CH (2A'),test_data/G2-97/isopropyl_rad.xyz,0,doublet,-118.42598,-118.34090,-118.33474,25.5,21.5,21.5,0.0
+(CH3)3C (t-butyl radical),test_data/G2-97/t-butyl_rad.xyz,0,doublet,-157.73061,-157.61802,-157.61056,18.6,13.2,12.3,-0.9
+NO2,test_data/G2-97/no2.xyz,0,doublet,-204.99249,-204.98402,-204.98013,8.2,7.5,7.9,0.4
