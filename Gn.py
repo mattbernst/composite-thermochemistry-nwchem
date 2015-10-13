@@ -915,14 +915,7 @@ class G4_mp2(Gn_common):
         self.send_nwchem_cmd("mp2 ; freeze atomic ; end")
 
         try:
-            if self.multiplicity != "singlet":
-                self.send_nwchem_cmd("unset tce:*")
-                self.send_nwchem_cmd("tce ; scf ; mp2 ; freeze atomic ; end")
-
-                en = nwchem.task_energy("tce")
-            else:
-                en = nwchem.task_energy("mp2")
-
+            en = nwchem.task_energy("mp2")
             self.debug('MP2 frozen: en=%.6f\n' % en)
         except:
             self.report("FAILED: MP2(fc)/6-31G(2df,p) energy")
@@ -975,12 +968,7 @@ class G4_mp2(Gn_common):
         self.send_nwchem_cmd("unset mp2:*")
         self.send_nwchem_cmd("mp2 ; freeze atomic ; end")
 
-        if self.multiplicity != "singlet" or self.is_atom():
-            self.send_nwchem_cmd("unset tce:*")
-            self.send_nwchem_cmd("tce ; mp2 ; freeze atomic ; end")
-            en = nwchem.task_energy("tce")
-        else:
-            en = nwchem.task_energy("mp2")
+        en = nwchem.task_energy("mp2")
 
         self.debug('MP(2,fc)/g3mp2large: en=%.6f\n' % en)
 
@@ -1281,17 +1269,10 @@ class G3_mp2(Gn_common):
 
         self.say('MP2 optimize.')
 
-        if self.multiplicity != "singlet":
-            self.send_nwchem_cmd("tce ; scf ; mp2 ; end")
-            if self.is_atom():
-                en = nwchem.task_energy("tce")
-            else:
-                en, grad = nwchem.task_optimize("tce")
+        if self.is_atom():
+            en = nwchem.task_energy("mp2")
         else:
-            if self.is_atom():
-                en = nwchem.task_energy("mp2")
-            else:
-                en, grad = nwchem.task_optimize("mp2")
+            en, grad = nwchem.task_optimize("mp2")
 
         self.debug('optimize: MP(2,full)/6-31G*= %.6f\n' % en)
 
@@ -1308,13 +1289,7 @@ class G3_mp2(Gn_common):
         self.send_nwchem_cmd("unset mp2:*")
         self.send_nwchem_cmd("mp2 ; freeze atomic ; end")
 
-        if self.multiplicity != "singlet":
-            self.send_nwchem_cmd("unset tce:*")
-            self.send_nwchem_cmd("tce ; scf ; mp2 ; freeze atomic ; end")
-            en = nwchem.task_energy("tce")
-
-        else:
-            en = nwchem.task_energy("mp2")
+        en = nwchem.task_energy("mp2")
 
         self.debug('MP2 frozen: en=%.6f\n' % en)
         self.Emp2frozen = en
@@ -1355,12 +1330,7 @@ class G3_mp2(Gn_common):
         self.send_nwchem_cmd("unset mp2:*")
         self.send_nwchem_cmd("mp2; freeze atomic; end")
 
-        if self.multiplicity != "singlet" or self.is_atom():
-            self.send_nwchem_cmd("unset tce:*")
-            self.send_nwchem_cmd("tce ; mp2 ; freeze atomic; end")
-            en = nwchem.task_energy("tce")
-        else:
-            en = nwchem.task_energy("mp2")
+        en = nwchem.task_energy("mp2")
 
         self.debug(' g3mp2large: en=%.6f\n' % en)
 
