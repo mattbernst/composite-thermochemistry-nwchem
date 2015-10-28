@@ -59,10 +59,12 @@ class Runner(object):
               "gn-g3mp2-qcisdt", "gn-g4mp2"]
     def __init__(self, model, geofile, charge, multiplicity, nproc, memory,
                  tmpdir, verbose, noclean, force):
+        self.atoms = []
         self.model = model
         self.geofile = geofile
         self.charge = charge
         self.multiplicity = self.get_multiplicity(multiplicity)
+        self.prime_atoms(geofile)
         self.nproc = nproc or self.get_nproc()
         self.memory = memory or self.get_memory()
         self.verbose = verbose
@@ -70,6 +72,19 @@ class Runner(object):
         self.noclean = noclean
         self.force = force
         self.start_time = time.time()
+
+    def prime_atoms(self, geofile):
+        """Get list of atoms from geometry input.
+
+        :param geofile: name of geometry file
+        :type geofile : str
+        """
+
+        with open(geofile) as gf:
+            for line in gf.readlines()[2:]:
+                data = line.strip()
+                if data:
+                    self.atoms.append(line.split()[0])
 
     def get_multiplicity(self, mult):
         """Validate or translate multiplicity.
@@ -380,7 +395,9 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                       "maximum iterations exceeded" :
                       "Convergence failure",
                       "calculations not reaching convergence" :
-                      "Convergence failure"}
+                      "Convergence failure",
+                      "Segmentation Violation error" :
+                      "Too many cores"}
 
             cause = ""
             for k, v in sorted(errors.items()):
@@ -398,8 +415,15 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                 deck = self.get_deck(force_c1_symmetry=True)
                 return self.run_and_extract(deck)
 
-            #If memory runs short, try reducing nproc to give more memory per core
+            #If memory runs short, try reducing nproc to give more memory per
+            #core
             elif cause.startswith("Memory shortage") and self.nproc > 1:
+                self.nproc /= 2
+                deck = self.get_deck()
+                return self.run_and_extract(deck)
+
+            #If segmentation violation, try reducing nproc to fix CCSD(T)
+            elif cause.startswith("Too many cores") and self.nproc > 1:
                 self.nproc /= 2
                 deck = self.get_deck()
                 return self.run_and_extract(deck)
@@ -446,7 +470,11 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         return max(megabytes, 1000)
 
     def get_nproc(self):
-        """Automatically get number of processors
+        """Automatically get number of processors. Takes geometry into account:
+        jobs will fail if too many processors are assigned to too few atoms.
+
+        :return: number of processors to use
+        :rtype : int
         """
 
         nproc = 0
@@ -474,6 +502,11 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
                 nproc = int(os.popen('sysctl -n machdep.cpu.core_count').readlines()[0].strip())
             except:
                 nproc = 1
+
+        #Max 4 procs per heavy atom
+        heavies = [a for a in self.atoms if a.upper() != "H"]
+        nproc = min(len(heavies) * 4, nproc)
+        
 
         return max(1, nproc)
 
