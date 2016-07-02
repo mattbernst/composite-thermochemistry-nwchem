@@ -93,6 +93,25 @@ class Gn_common(object):
         if self.debug_flag:
             self.say("DEBUG: {0}\n".format(s))
 
+    def quick_optimize(self):
+        '''
+           HF/3-21G optimization
+        '''
+
+        if self.is_atom():
+            return
+
+        self.say('quick optimize.')
+        self.send_nwchem_cmd("scf; maxiter 99; end")
+        self.send_nwchem_cmd("driver; maxiter 99; end".format(self.geohash))
+
+        self.send_nwchem_cmd("basis noprint ; * library 3-21G ; end")
+        scfcmd = self.build_SCF_cmd()
+        self.send_nwchem_cmd(scfcmd)
+
+        # optimize the geometry, ignore energy and gradient results
+        en, grad = nwchem.task_optimize("scf")
+
     def vib_thermo(self, vibs):
         """Handroll the ZPE because NWChem's zpe accumulates
         truncation error from 3 sigfig physical constants.
@@ -1134,6 +1153,7 @@ class G4_mp2(Gn_common):
         self.Edone = False
 
         g4mp2_function = [
+            self.quick_optimize,
             self.optimize,
             self.E_zpe,
             self.prepare_scf_vectors,
@@ -1224,7 +1244,6 @@ class G3_mp2(Gn_common):
         self.send_nwchem_cmd("scf; maxiter 99; end")
         self.send_nwchem_cmd("driver; maxiter 99; xyz {0}; end".format(self.geohash))
 
-        #self.send_nwchem_cmd("basis noprint ; * library 6-31G* ; end")
         self.basis_prepare("6-31G*", output="6-31G*", coordinates="cartesian")
         scfcmd = self.build_SCF_cmd()
         self.send_nwchem_cmd(scfcmd)
@@ -1614,6 +1633,7 @@ class G3_mp2(Gn_common):
 
     def run(self):
         g3mp2_function = [
+            self.quick_optimize,
             self.HF_optimize,
             self.HF_zpe,
             self.reset_symmetry,
