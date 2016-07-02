@@ -227,10 +227,7 @@ model.run()""".format(charge=self.charge, mult=repr(self.multiplicity), cache=in
         else:
             redirector = "&> "
 
-        if self.nproc == 1:
-            runner = "cd {0} && nwchem {1} {2} {3}".format(tmpdir, deckfile, redirector, logfile)
-        else:
-            runner = "cd {0} && mpirun -np {1} nwchem {2} {3} {4}".format(tmpdir, self.nproc, deckfile, redirector, logfile)
+        runner = "cd {0} && mpirun -np {1} nwchem {2} {3} {4}".format(tmpdir, self.nproc, deckfile, redirector, logfile)
 
         banner = self.get_banner("Running:")
         print(banner)
